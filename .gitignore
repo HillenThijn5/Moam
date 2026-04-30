@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+.eggs/
+
+# Virtual environment
+.venv/
+venv/
+env/
+
+# PyInstaller build output
+build/
+dist/
+*.spec
+
+# PyCharm
+.idea/
+
+# SharePoint live data (contains business-sensitive deal info — not for version control)
+sharepoint/sharepointsummary.xlsx
+
+# Windows
+Thumbs.db
+desktop.ini
+
+# Logs / debug
+*.log
+moam_debug.log
+
+# Temp files
+*.tmp
+*.temp
