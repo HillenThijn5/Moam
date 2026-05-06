@@ -48,10 +48,13 @@ def send_increase_decrease_mail(
         raise ValueError("ISIN is required")
     if size <= 0:
         raise ValueError("Size must be positive")
-    pays_recv = "Pays" if increase else "Receives"
-    amount    = (abs(transfer_price) / 100 * size) if transfer_price is not None else ""
+    pays_recv  = "Pays" if increase else "Receives"
+    direction  = "Opbouwen" if increase else "Afbouwen"
+    c7_label   = "Increase" if increase else "Decrease"
+    amount     = (abs(transfer_price) / 100 * size) if transfer_price is not None else ""
 
     cell_updates = {
+        "C7":  c7_label,
         "C9":  name,
         "C10": isin,
         "C11": size,
@@ -60,7 +63,6 @@ def send_increase_decrease_mail(
         "C19": size,
     }
 
-    direction = "Opbouwen" if increase else "Afbouwen"
     subject   = f"SP Control: New MTN - {direction} {isin}"
 
     # Excel must stay alive until after the paste — quitting Excel flushes the clipboard.
