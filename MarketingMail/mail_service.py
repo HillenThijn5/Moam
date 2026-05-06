@@ -62,6 +62,14 @@ def create_and_send_marketing_mail(
     if not 1 <= choice <= 4:
         raise ValueError("choice must be between 1 and 4")
 
+    if not products:
+        raise ValueError("At least one product is required")
+
+    if len(products) < choice:
+        raise ValueError(
+            f"choice={choice} but only {len(products)} products provided"
+        )
+
     to = to or MARKETING_MAIL_TO_LIST
     cc = cc or STRUCTURED_INVESTMENTS_EMAIL
 

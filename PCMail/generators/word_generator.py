@@ -1,4 +1,5 @@
 from pathlib import Path
+from xml.sax.saxutils import escape as xml_escape
 from docxtpl import DocxTemplate, RichText
 from PCMail.config.paths import WORD_TEMPLATE_PATH, TEMP_DIR
 
@@ -54,6 +55,8 @@ def render_word(ctx: dict, series: str) -> str:
     doc = DocxTemplate(str(WORD_TEMPLATE_PATH))
 
     ctx = _apply_hyperlinks(doc, ctx)
+    # docxtpl doesn't XML-escape plain strings; pre-escape so & < > survive in the .docx
+    ctx = {k: xml_escape(v) if isinstance(v, str) else v for k, v in ctx.items()}
 
     doc.render(ctx)
 

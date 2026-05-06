@@ -1,4 +1,5 @@
 # MarketingMail/config.py
+import sys
 from pathlib import Path
 from statics.data import (
     MARKETING_MAIL_TO_LIST as TO_LIST,
@@ -8,8 +9,15 @@ from statics.data import (
     MARKETING_PARAMETER_CONFIG as PARAMETER_CONFIG,
 )
 
-BASE_DIR = Path(__file__).resolve().parent
-EXCEL_PATH = BASE_DIR / "templates" / "excel(marketingmail).xlsx"
+
+def _exe_root() -> Path:
+    """Project root: exe's folder when frozen, otherwise MoamProject source root."""
+    if getattr(sys, "frozen", False):
+        return Path(sys.executable).parent
+    return Path(__file__).resolve().parents[1]
+
+
+EXCEL_PATH = _exe_root() / "MarketingMail" / "templates" / "excel(marketingmail).xlsx"
 
 
 # ====== EXCEL CELL MAPPING ======

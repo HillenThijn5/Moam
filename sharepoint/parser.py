@@ -45,6 +45,7 @@ ISSUER_CODE_MAP: dict[str, str] = {
     "VLK":    "VLK",
     "BNP":    "BNP Paribas Issuance",
     "BNPP":   "BNP Paribas Issuance",
+    "UBS":    "UBS AG",
     "SG":     "Société Générale",
     "SOCGEN": "Société Générale",
 }

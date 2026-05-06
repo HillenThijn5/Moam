@@ -12,6 +12,15 @@ FIXED_TO = DOCUMENTATIE_MAIL_RECIPIENTS["to"]
 FIXED_CC = DOCUMENTATIE_MAIL_RECIPIENTS["fixed_cc"]
 
 def send_documentatie_mail(email_data: dict) -> None:
+    # ✅ Validate required fields
+    required_fields = ["product", "isin", "maturity", "currency", "issuer", "trades"]
+    missing = [f for f in required_fields if not email_data.get(f)]
+    if missing:
+        raise ValueError(f"Missing required fields: {', '.join(missing)}")
+
+    if not email_data.get("trades"):
+        raise ValueError("At least one trade is required")
+
     # ✅ Always ensure TO recipients
     to_names = email_data.get("to") or FIXED_TO
 

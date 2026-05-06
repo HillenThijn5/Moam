@@ -5,6 +5,7 @@ Product-specific text builders.
 Each function maps product type + numeric inputs to a human-readable string
 for use in the Word template context.
 """
+from statics.loader import load_parp_dates
 
 
 def build_payoff(
@@ -101,16 +102,8 @@ def build_denomination(manual_denom: str, product: str, currency: str = "EUR") -
 
 
 def build_parp(product: str) -> str:
-    """Returns the PARP (Programme Approval/Reporting Period) date for the product."""
-    p = product.strip()
-
-    if p in ("Trigger Plus Note", "Memory Coupon"):
-        return "24 September 2025"
-
-    if p in ("Index Garantie Note", "Index Garantie Note Capped", "Fixed Rate Note"):
-        return "10 December 2025"
-
-    return ""
+    """Returns the PARP date for the product, read from the PARP sheet in static_sheet.xlsx."""
+    return load_parp_dates().get(product.strip(), "")
 
 
 def build_eusipa(product: str) -> str:

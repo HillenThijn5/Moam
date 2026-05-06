@@ -12,6 +12,7 @@ from PCMail.generators.word_generator import render_word
 from PCMail.generators.excel_generator import render_target_market
 from PCMail.mail.outlook_mailer import send_mail
 from PCMail.models.inputdefinition import PCMailProduct, Underlying
+from statics.data import PRODUCTS_NO_UNDERLYING
 from statics.loader import load_benchmark_map
 from statics.outlook_user import get_sender_first_name
 
@@ -22,6 +23,14 @@ def run_pc_mail(product: PCMailProduct) -> None:
     Receives a fully populated PCMailProduct, renders Word + Excel attachments,
     and opens the draft Outlook email.
     """
+    # Validate critical fields before starting the workflow
+    if not product.series or not product.series.strip():
+        raise ValueError("Series number is required")
+    if not product.product or not product.product.strip():
+        raise ValueError("Product type is required")
+    if not product.underlyings and product.product.strip() not in PRODUCTS_NO_UNDERLYING:
+        raise ValueError("At least one underlying is required for this product type")
+
     # Enrich underlyings with benchmark data from the static Excel sheet
     benchmark_map = load_benchmark_map()
     for u in product.underlyings:

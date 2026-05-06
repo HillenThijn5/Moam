@@ -1,5 +1,6 @@
 import html
 
+import win32com.client as win32
 
 from MarketingMail.config import TO_LIST, CC_LIST
 

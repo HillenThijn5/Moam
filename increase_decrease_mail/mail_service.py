@@ -7,6 +7,7 @@ Note: Excel must stay open until after sel.Paste() because quitting Excel
 flushes the Windows clipboard, which would cause a "Clipboard is empty" error.
 """
 from __future__ import annotations
+import sys
 from pathlib import Path
 
 import win32com.client as win32
@@ -14,7 +15,15 @@ import win32com.client as win32
 from statics.data import ID_MAIL_TO, ID_MAIL_CC
 from MarketingMail.excel_handler import ExcelHandler
 
-TEMPLATE_PATH = Path(__file__).parent / "increasedecrease(mailtemplate).xlsx"
+
+def _exe_root() -> Path:
+    """Project root: exe's folder when frozen, otherwise MoamProject source root."""
+    if getattr(sys, "frozen", False):
+        return Path(sys.executable).parent
+    return Path(__file__).resolve().parents[1]
+
+
+TEMPLATE_PATH = _exe_root() / "increase_decrease_mail" / "increasedecrease(mailtemplate).xlsx"
 SHEET_NAME    = "IncreaseDecrease"
 COPY_RANGE    = "B1:C22"
 
@@ -33,11 +42,18 @@ def send_increase_decrease_mail(
     3. Copy B1:C22 as a picture to the clipboard.
     4. Open Outlook draft, paste the picture into the mail body.
     """
+    if not name or not name.strip():
+        raise ValueError("Product name is required")
+    if not isin or not isin.strip():
+        raise ValueError("ISIN is required")
+    if size <= 0:
+        raise ValueError("Size must be positive")
     pays_recv = "Pays" if increase else "Receives"
     amount    = (abs(transfer_price) / 100 * size) if transfer_price is not None else ""
 
     cell_updates = {
         "C9":  name,
+        "C10": isin,
         "C11": size,
         "C12": pays_recv,
         "C13": amount,

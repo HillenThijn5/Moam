@@ -27,7 +27,12 @@ def get_labels_and_values(product_dict: dict) -> dict:
         value_param1, value_param2, value_param3, value_param4
     """
     product_type = product_dict.get("product_type")
-    config = PRODUCT_TYPE_CONFIG.get(product_type, PRODUCT_TYPE_CONFIG.get("TRIGGER"))
+    config = PRODUCT_TYPE_CONFIG.get(product_type)
+    if config is None:
+        raise ValueError(
+            f"Unknown product_type '{product_type}'. "
+            f"Valid types: {', '.join(PRODUCT_TYPE_CONFIG.keys())}"
+        )
 
     return {
         # Excel label text (Dutch)
@@ -54,6 +59,11 @@ def build_cell_updates(data: dict, choice: int) -> dict:
     """
     if not 1 <= choice <= 4:
         raise ValueError("choice must be between 1 and 4")
+
+    if len(data["products"]) < choice:
+        raise ValueError(
+            f"choice={choice} but only {len(data['products'])} products provided"
+        )
 
     updates = {
         "B9":  data["title"],

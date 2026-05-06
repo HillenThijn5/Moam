@@ -42,6 +42,13 @@ def _run() -> None:
         except Exception:
             pass
 
+        # ── 5. Marketing Mail — warm Excel template into OS file cache ────
+        try:
+            from MarketingMail.config import EXCEL_PATH
+            EXCEL_PATH.read_bytes()  # pull template bytes into OS page cache
+        except Exception:
+            pass
+
     except Exception:
         pass  # pre-warming is best-effort; errors are silent
     finally:

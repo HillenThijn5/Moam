@@ -1,18 +1,9 @@
 # MarketingMail/models.py
 from dataclasses import dataclass, field
 from typing import Optional
-from datetime import date, timedelta
+from datetime import date
 
-
-def _add_business_days(start: date, days: int) -> date:
-    """Advances start by the given number of business days (Mon–Fri)."""
-    current = start
-    added = 0
-    while added < days:
-        current += timedelta(days=1)
-        if current.weekday() < 5:
-            added += 1
-    return current
+from PCMail.builders.dates import add_business_days
 
 
 @dataclass
@@ -28,7 +19,7 @@ class MarketingProduct:
     product_type: str   # TRIGGER, MEMORY_COUPON, INDEX_GARANTIE, INDEX_GARANTIE_CAPPED, AUTOCALL
     currency: str       # EUR, USD
     underlying: str     # e.g. "SX5E" or "SX5E / SPX"
-    issuer: str = "Van Lanschot Kempen N.V."
+    issuer: str = "Van Lanschot Kempen N.V. (Fitch: A- / S&P: BBB+)"
     maturity: str = "5 jaar"
 
     # Payoff fields — same naming as PCMailProduct
@@ -46,7 +37,7 @@ class MarketingProduct:
         default_factory=lambda: date.today().strftime("%d %b %Y")
     )
     issue_date: str = field(
-        default_factory=lambda: _add_business_days(date.today(), 5).strftime("%d %b %Y")
+        default_factory=lambda: add_business_days(date.today(), 5).strftime("%d %b %Y")
     )
 
     @property
@@ -62,14 +53,15 @@ class MarketingProduct:
     @property
     def product_name(self) -> str:
         """Derive product name from type, underlying, currency, with maturity."""
-        from MarketingMail.product_title import PRODUCT_TYPE_NAMES, get_underlying_alias, get_maturity_years_range
+        from MarketingMail.product_title import PRODUCT_TYPE_NAMES, get_underlying_alias, get_maturity_years_range, _shorten_issuer
 
+        issuer_short = _shorten_issuer(self.issuer)
         product_type_name = PRODUCT_TYPE_NAMES.get(self.product_type, self.product_type.title())
         underlying_alias = get_underlying_alias(self.underlying)
         maturity_range = get_maturity_years_range(self.issue_date, self.maturity)
         currency_suffix = f" {self.currency}" if self.currency == "USD" else ""
 
-        return f"VLK {product_type_name} {underlying_alias} {maturity_range}{currency_suffix}"
+        return f"{issuer_short} {product_type_name} {underlying_alias} {maturity_range}{currency_suffix}"
 
     @property
     def isin(self) -> str:

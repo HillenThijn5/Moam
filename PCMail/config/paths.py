@@ -9,10 +9,11 @@ def project_root() -> Path:
     """
     Returns the project root folder (MoamProject),
     both in dev and in PyInstaller onefile EXE.
+    External data files (xlsx/docx) live beside the EXE, not inside it.
     """
-    if hasattr(sys, "_MEIPASS"):
-        # PyInstaller onefile temp dir
-        return Path(sys._MEIPASS)
+    if getattr(sys, "frozen", False):
+        # Onefile EXE: data files sit next to the executable
+        return Path(sys.executable).parent
     else:
         # paths.py → config → PCMail → MoamProject
         return Path(__file__).resolve().parents[2]

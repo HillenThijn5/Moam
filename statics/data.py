@@ -3,8 +3,19 @@
 Centralized static data for all mail generators.
 This is the single source of truth for all dropdown values, URLs, and constants.
 """
+import sys
 from pathlib import Path
-from statics.loader import load_adviser_map
+from statics.loader import (
+    load_adviser_map, load_underlyings, load_product_urls, load_prospectus_urls,
+)
+
+
+def _exe_root() -> Path:
+    """Project root: exe's folder when frozen, otherwise MoamProject source root."""
+    if getattr(sys, "frozen", False):
+        return Path(sys.executable).parent
+    return Path(__file__).resolve().parents[1]
+
 
 # ============================================================================
 # PATHS
@@ -12,7 +23,7 @@ from statics.loader import load_adviser_map
 
 # Local project copy — used for reading; kept in sync by the refresh logic
 SHAREPOINT_SUMMARY_PATH = str(
-    Path(__file__).resolve().parent.parent / "sharepoint" / "sharepointsummary.xlsx"
+    _exe_root() / "sharepoint" / "sharepointsummary.xlsx"
 )
 
 # OneDrive-synced source (auto-updated from SharePoint).
@@ -26,36 +37,19 @@ SHAREPOINT_ONEDRIVE_PATH = str(
 # ============================================================================
 
 PRODUCT_TYPES = {
-    "Trigger Plus Note": {
-        "label": "Trigger Plus Note",
-        "brochure_url": "https://markets.vanlanschotkempen.com/file/GetFile/uploadedfiles/Documents/FvL%2025328%20BRO%20SP%20Trigger%20Notes.pdf",
-        "video_url": "https://vimeo.com/765679154",
-        "video_label": "Hoe werkt een Trigger note?",
-    },
-    "Memory Coupon": {
-        "label": "Memory Coupon Note",
-        "brochure_url": "https://markets.vanlanschotkempen.com/file/GetFile/uploadedfiles/Documents/FvL%2025329%20BRO%20Memory%20Coupon%20Notes.pdf",
-        "video_url": None,
-        "video_label": None,
-    },
-    "Index Garantie Note": {
-        "label": "Index Garantie Note",
-        "brochure_url": "https://markets.vanlanschotkempen.com/file/GetFile/uploadedfiles/Documents/FvL%2025326%20BRO%20Index%20Garantie%20Notes.pdf",
-        "video_url": "https://vimeo.com/765678480",
-        "video_label": "Hoe werkt een Garantie note?",
-    },
-    "Index Garantie Note Capped": {
-        "label": "Index Garantie Note Capped",
-        "brochure_url": "https://markets.vanlanschotkempen.com/file/GetFile/uploadedfiles/Documents/FvL%2025326%20BRO%20Index%20Garantie%20Notes.pdf",
-        "video_url": "https://vimeo.com/765678480",
-        "video_label": "Hoe werkt een Garantie note?",
-    },
-    "Fixed Rate Note": {
-        "label": "Fixed Rate Note",
-        "brochure_url": "",
-        "video_url": None,
-        "video_label": None,
-    },
+    pt: {
+        "label":       pt if pt != "Memory Coupon" else "Memory Coupon Note",
+        "brochure_url": load_product_urls().get(pt, {}).get("brochure_url", ""),
+        "video_url":    load_product_urls().get(pt, {}).get("video_url"),
+        "video_label":  load_product_urls().get(pt, {}).get("video_label"),
+    }
+    for pt in [
+        "Trigger Plus Note",
+        "Memory Coupon",
+        "Index Garantie Note",
+        "Index Garantie Note Capped",
+        "Fixed Rate Note",
+    ]
 }
 HEDGEPARTY = [
     "UBS",
@@ -130,44 +124,8 @@ CLIENTS = ["VL NL", "VL Belgium", "VL Switzerland", "ING Bank", "Alpha Capital"]
 # ============================================================================
 # DOCUMENTATIE MAIL SPECIFIC
 # ============================================================================
-UNDERLYINGS = [
-    "SD3E",
-    "SX5E",
-    "SEESGSEP",
-    "VWO US",
-    "AEX",
-    "SPX",
-    "SHELL NA",
-    "SCXP",
-    "EPRA",
-    "SXEP",
-    "SXKP",
-    "EEM UP",
-    "EEM US",
-    "SDGP",
-    "SOXX US",
-    "SX7P",
-    "SOLEEE",
-    "KOSPI2",
-    "RFESGDP",
-    "SXXP",
-    "SX5EESG",
-    "SX6P",
-    "SIMSCI",
-    "RTY",
-    "NKY",
-    "HSCEI",
-    "SMI",
-    "HSI",
-    "UKX",
-    "TAMSCI",
-    "SELRE",
-    "EWZ UP",
-    "SUBE",
-    "USSW10-USSW2",
-    "EIISDA30",
-    "EIISDA10",
-]
+_ud = load_underlyings()
+UNDERLYINGS      = _ud["list"]
 ADVISER_HELPERS: dict[str, str] = load_adviser_map()
 
 DOCUMENTATIE_MAIL_RECIPIENTS = {
@@ -241,6 +199,13 @@ MARKETING_PARAMETER_CONFIG = {
         "asianing": False,
     },
 }
+
+MARKETING_ISSUERS = [
+    "Van Lanschot Kempen N.V. (Fitch: A- / S&P: BBB+)",
+    "BNP Paribas Issuance B.V. (Moody's: Aa3 / Fitch: AA- / S&P: A+)",
+    "UBS AG (Moody's: Aa3 / S&P: A+ / Fitch: AA-)",
+    "SG Issuer, gewaarborgd door Société Générale (Moody's: A1 / S&P: A / Fitch: A)",
+]
 
 MARKETING_MAIL_SIGNATURE = "Van Lanschot Kempen Structured Products"
 
@@ -345,100 +310,25 @@ PC_MAIL_TO_RECIPIENTS = (
 # UNDERLYING NAMES & ALIASES
 # ============================================================================
 
-# Full display names used in Excel (marketing mail)
-UNDERLYING_FULL_NAMES = {
-    "SX5E":  "EURO STOXX 50 Index",
-    "SPX":   "S&P 500 Index",
-    "NDX":   "NASDAQ-100 Index",
-    "AEX":   "AEX Index",
-    "SX7E":  "EURO STOXX Banks Index",
-    "SD3E":  "EURO STOXX Select Dividend 30 Index",
-    "NKY":   "Nikkei 225 Index",
-    "EEM UP":"iShares MSCI Emerging Markets ETF",
-    "SDGP":  "STOXX Global Select Dividend 100 Index EUR",
-    "SX7P":  "STOXX Europe 600 Banks Index",
-    "SXEP":  "STOXX Europe 600 Oil &amp; Gas Index",
-    "SXKP":  "STOXX Europe 600 Telecommunications Index",
-    "SX6P":  "STOXX Europe 600 Utilities Index",
-}
-
-# Short business-safe aliases used in product titles and doc-mail subjects
-UNDERLYING_ALIASES = {
-    "SX5E":                       "Eurozone",
-    "SPX":                        "VS",
-    "NDX":                        "US Technology",
-    "EURO STOXX BANKS":           "Eurozone Banks",
-    "EURO STOXX SELECT DIVIDEND": "Eurozone Dividend",
-    "AEX":                        "",
-    "SX7E":                       "Eurozone Banks",
-    "SD3E":                       "Eurozone Dividend",
-    "NKY":                        "JPN",
-    "EEM UP":                     "EM",
-    "SDGP":                       "Global Dividend",
-    "SX7P":                       "",
-    "SXEP":                       "",
-    "SXKP":                       "",
-    "SX6P":                       "",
-}
+UNDERLYING_FULL_NAMES = _ud["full_names"]
+UNDERLYING_ALIASES    = _ud["aliases"]
 
 # ============================================================================
-# PC MAIL DOCUMENT LINKS
+# PC MAIL DOCUMENT LINKS  (built from ProductURLs sheet in static_sheet.xlsx)
 # ============================================================================
+_pu = load_product_urls()
 
-# Brochure links shown in the Word template (keyed by product name, uppercase)
 PC_MAIL_BROCHURE_URLS: dict[str, tuple[str, str]] = {
-    "TRIGGER PLUS NOTE": (
-        "General Brochure Trigger Notes",
-        "https://markets.vanlanschotkempen.com/uploadedfiles/Documents/FvL%2025328%20BRO%20SP%20Trigger%20Notes.pdf",
-    ),
-    "MEMORY COUPON": (
-        "General Brochure Memory Coupon",
-        "https://markets.vanlanschotkempen.com/uploadedfiles/Documents/FvL%2025329%20BRO%20Memory%20Coupon%20Notes.pdf",
-    ),
-    "INDEX GARANTIE NOTE": (
-        "General Brochure Index Garantie Notes",
-        "https://markets.vanlanschotkempen.com/uploadedfiles/Documents/Brochure_Index_Garantie_Notes_Jan23.pdf",
-    ),
-    "INDEX GARANTIE NOTE CAPPED": (
-        "General Brochure Index Garantie Notes",
-        "https://markets.vanlanschotkempen.com/uploadedfiles/Documents/Brochure_Index_Garantie_Notes_Jan23.pdf",
-    ),
+    pt.upper(): (d["brochure_label"], d["brochure_url"])
+    for pt, d in _pu.items()
+    if d.get("brochure_url")
 }
 
-# Product video links shown in the Word template (keyed by product name, uppercase).
-# URL is the same as in PRODUCT_TYPES; label is the PC Mail link text.
 PC_MAIL_VIDEO_URLS: dict[str, tuple[str, str]] = {
-    key.upper(): (info["video_label_pc"], info["video_url"])
-    for key, info in {
-        "Trigger Plus Note": {
-            "video_label_pc": "Trigger Notes – Product Video",
-            "video_url": PRODUCT_TYPES["Trigger Plus Note"]["video_url"],
-        },
-        "Index Garantie Note": {
-            "video_label_pc": "Index Garantie Notes – Product Video",
-            "video_url": PRODUCT_TYPES["Index Garantie Note"]["video_url"],
-        },
-        "Index Garantie Note Capped": {
-            "video_label_pc": "Index Garantie Notes – Product Video",
-            "video_url": PRODUCT_TYPES["Index Garantie Note Capped"]["video_url"],
-        },
-    }.items()
-    if info["video_url"]
+    pt.upper(): (d["video_label_pc"], d["video_url"])
+    for pt, d in _pu.items()
+    if d.get("video_url") and d.get("video_label_pc")
 }
 
-# Prospectus URLs keyed by code (DIP / SNIP)
-PROSPECTUS_URLS: dict[str, tuple[str, str]] = {
-    "DIP": (
-        "DIP",
-        "https://www.vanlanschotkempen.com/-/media/files/documents/corporate/"
-        "investor-relations-en/debt-investors/library/dip/2025/prospectus/"
-        "securities-note---15-may-2025.ashx",
-    ),
-    "SNIP": (
-        "SNIP",
-        "https://www.vanlanschotkempen.com/-/media/files/documents/corporate/"
-        "investor-relations-en/debt-investors/library/snip/2025/prospectus/"
-        "securities-note---30-may-2025.ashx",
-    ),
-}
+PROSPECTUS_URLS: dict[str, tuple[str, str]] = load_prospectus_urls()
 

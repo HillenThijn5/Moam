@@ -9,32 +9,46 @@ class IncreaseDecreaseTab:
     Increase / Decrease Mail tab.
 
     Workflow:
-    1. Click 'Fetch Positions' — queries the DB for current short MTN positions.
-    2. Select a row in the treeview.
-    3. Enter the nominal Size and choose Increase or Decrease.
-    4. 'Amount' is auto-calculated as TransferPrice / 100 * Size.
+    1. Choose Increase or Decrease at the top.
+    2. Click 'Fetch Positions' — queries the DB for short (Increase) or long (Decrease) positions.
+    3. Select a row in the treeview.
+    4. Enter the nominal Size.
     5. Click 'Send' to open a draft in Outlook.
     """
 
     def __init__(self, parent):
         self.frame = ttk.Frame(parent)
-        self._positions: list[dict] = []   # raw rows from DB
+        self._positions: list[dict] = []
         self._selected: dict | None = None
 
         self._build_ui()
 
     # ──────────────────────────────────────────── UI construction ─────────────
     def _build_ui(self):
-        # ── Fetch section ─────────────────────────────────────────────────────
-        fetch_frame = ttk.LabelFrame(self.frame, text="Database")
+        # ── Direction + Fetch section (TOP) ───────────────────────────────────
+        fetch_frame = ttk.LabelFrame(self.frame, text="Direction & Database")
         fetch_frame.pack(fill="x", padx=10, pady=(10, 4))
 
-        ttk.Button(fetch_frame, text="Fetch Positions",
-                   command=self._fetch_positions).pack(side="left", padx=8, pady=6)
+        # Direction radio buttons — first thing the user sets
+        ttk.Label(fetch_frame, text="Direction:").grid(
+            row=0, column=0, sticky="w", padx=8, pady=6)
+        self._direction_var = tk.StringVar(value="Increase")
+        dir_row = ttk.Frame(fetch_frame)
+        dir_row.grid(row=0, column=1, sticky="w", padx=8, pady=6)
+        ttk.Radiobutton(dir_row, text="Increase (Opbouwen)  — short positions",
+                        variable=self._direction_var, value="Increase",
+                        command=self._on_direction_change).pack(side="left", padx=(0, 16))
+        ttk.Radiobutton(dir_row, text="Decrease (Afbouwen)  — long positions",
+                        variable=self._direction_var, value="Decrease",
+                        command=self._on_direction_change).pack(side="left")
 
+        # Fetch button + status on row below
+        ttk.Button(fetch_frame, text="Fetch Positions",
+                   command=self._fetch_positions).grid(
+            row=1, column=0, sticky="w", padx=8, pady=(0, 6))
         self._status_var = tk.StringVar(value="Not loaded")
         ttk.Label(fetch_frame, textvariable=self._status_var,
-                  foreground="#555").pack(side="left", padx=8)
+                  foreground="#555").grid(row=1, column=1, sticky="w", padx=8)
 
         # ── Positions treeview ────────────────────────────────────────────────
         tree_frame = ttk.LabelFrame(self.frame, text="Positions (select one)")
@@ -59,34 +73,20 @@ class IncreaseDecreaseTab:
         deal_frame = ttk.LabelFrame(self.frame, text="Deal Details")
         deal_frame.pack(fill="x", padx=10, pady=4)
 
-        # Direction
-        ttk.Label(deal_frame, text="Direction:").grid(
-            row=0, column=0, sticky="w", padx=8, pady=4)
-        self._direction_var = tk.StringVar(value="Increase")
-        dir_row = ttk.Frame(deal_frame)
-        dir_row.grid(row=0, column=1, sticky="w", padx=8, pady=4)
-        ttk.Radiobutton(dir_row, text="Increase (Opbouwen)",
-                        variable=self._direction_var, value="Increase",
-                        command=self._on_direction_change).pack(side="left", padx=(0, 16))
-        ttk.Radiobutton(dir_row, text="Decrease (Afbouwen)",
-                        variable=self._direction_var, value="Decrease",
-                        command=self._on_direction_change).pack(side="left")
-
-        # Pays / Receives (auto, read-only display)
+        # Pays / Receives (derived from direction, read-only)
         ttk.Label(deal_frame, text="Pays / Receives:").grid(
-            row=1, column=0, sticky="w", padx=8, pady=4)
+            row=0, column=0, sticky="w", padx=8, pady=4)
         self._pays_var = tk.StringVar(value="Pays")
         ttk.Label(deal_frame, textvariable=self._pays_var,
                   foreground="#003366", font=("Segoe UI", 10, "bold")).grid(
-            row=1, column=1, sticky="w", padx=8, pady=4)
+            row=0, column=1, sticky="w", padx=8, pady=4)
 
         # Size
         ttk.Label(deal_frame, text="Size (nominal):").grid(
-            row=2, column=0, sticky="w", padx=8, pady=4)
+            row=1, column=0, sticky="w", padx=8, pady=4)
         size_row = ttk.Frame(deal_frame)
-        size_row.grid(row=2, column=1, sticky="w", padx=8, pady=4)
+        size_row.grid(row=1, column=1, sticky="w", padx=8, pady=4)
         self._size_var = tk.StringVar()
-        self._size_var.trace_add("write", self._on_size_change)
         self._size_entry = ttk.Entry(size_row, textvariable=self._size_var, width=18)
         self._size_entry.pack(side="left")
         self._size_entry.bind("<FocusOut>", self._format_size)
@@ -95,11 +95,11 @@ class IncreaseDecreaseTab:
 
         # Selected product info
         ttk.Label(deal_frame, text="Selected product:").grid(
-            row=3, column=0, sticky="w", padx=8, pady=4)
+            row=2, column=0, sticky="w", padx=8, pady=4)
         self._selected_var = tk.StringVar(value="— none —")
-        sel_entry = ttk.Entry(deal_frame, textvariable=self._selected_var,
-                              state="readonly", width=55)
-        sel_entry.grid(row=3, column=1, sticky="w", padx=8, pady=4)
+        ttk.Entry(deal_frame, textvariable=self._selected_var,
+                  state="readonly", width=55).grid(
+            row=2, column=1, sticky="w", padx=8, pady=4)
 
         # ── Buttons ───────────────────────────────────────────────────────────
         btn_frame = ttk.Frame(self.frame)
@@ -108,22 +108,23 @@ class IncreaseDecreaseTab:
 
     # ──────────────────────────────────────────── helpers ─────────────────────
     def _format_size(self, _=None):
-        """On focus-out, reformat the size value with dot-separated thousands."""
         raw = self._size_var.get().replace(".", "").replace(",", "").strip()
         if not raw:
             return
         try:
-            value = int(float(raw))
-            # Format with dots as thousands separator (Dutch style: 1.250.000)
-            self._size_var.set(f"{value:,}".replace(",", "."))
+            self._size_var.set(f"{int(float(raw)):,}".replace(",", "."))
         except ValueError:
             pass
 
     def _on_direction_change(self):
+        """Direction changed — update Pays/Receives and reset the table."""
         self._pays_var.set("Pays" if self._direction_var.get() == "Increase" else "Receives")
-
-    def _on_size_change(self, *_):
-        pass  # size field kept for mail injection; no live display needed
+        # Clear positions so the user knows they need to re-fetch for the new direction
+        self._tree.delete(*self._tree.get_children())
+        self._positions = []
+        self._selected = None
+        self._selected_var.set("— none —")
+        self._status_var.set("Direction changed — click Fetch Positions")
 
     def _on_select(self, _=None):
         sel = self._tree.selection()
@@ -131,8 +132,7 @@ class IncreaseDecreaseTab:
             self._selected = None
             self._selected_var.set("— none —")
             return
-        iid = sel[0]
-        row = self._tree.item(iid, "values")
+        row = self._tree.item(sel[0], "values")
         name, isin, position, tp = row
         self._selected = {
             "Name":          name,
@@ -141,10 +141,18 @@ class IncreaseDecreaseTab:
             "TransferPrice": float(tp) if tp not in ("", "None", None) else None,
         }
         self._selected_var.set(f"{name}  |  {isin}")
+        # Autofill size with the absolute position value (display value already formatted Dutch-style)
+        try:
+            abs_pos = abs(int(str(position).replace(".", "").replace(",", "")))
+            self._size_var.set(f"{abs_pos:,}".replace(",", "."))
+        except (ValueError, TypeError):
+            pass
 
-        # ──────────────────────────────────────────── DB fetch ────────────────────
+    # ──────────────────────────────────────────── DB fetch ────────────────────
     def _fetch_positions(self):
-        self._status_var.set("Fetching…")
+        direction = self._direction_var.get().lower()   # "increase" or "decrease"
+        label = "short" if direction == "increase" else "long"
+        self._status_var.set(f"Fetching {label} positions…")
         self._tree.delete(*self._tree.get_children())
         self._selected = None
         self._selected_var.set("— none —")
@@ -152,7 +160,7 @@ class IncreaseDecreaseTab:
         def _run():
             try:
                 from increase_decrease_mail.db import fetch_positions
-                rows = fetch_positions()
+                rows = fetch_positions(direction=direction)
                 self.frame.after(0, lambda: self._populate_tree(rows))
             except Exception as exc:
                 msg = str(exc)
@@ -162,13 +170,25 @@ class IncreaseDecreaseTab:
 
     def _populate_tree(self, rows: list[dict]):
         self._positions = rows
-        for r in rows:
+        # Sort by absolute position: smallest first for Increase, largest first for Decrease
+        reverse = (self._direction_var.get() == "Decrease")
+        rows_sorted = sorted(
+            rows,
+            key=lambda r: abs(float(r["Position"])) if r.get("Position") not in (None, "") else 0,
+            reverse=reverse,
+        )
+        for r in rows_sorted:
             tp = r.get("TransferPrice")
             tp_str = f"{abs(float(tp)):.4f}" if tp is not None else ""
+            raw_pos = r.get("Position")
+            try:
+                pos_str = f"{int(float(raw_pos)):,}".replace(",", ".")
+            except (ValueError, TypeError):
+                pos_str = str(raw_pos)
             self._tree.insert("", "end", values=(
                 r.get("Name", ""),
                 r.get("ISIN", ""),
-                r.get("Position", ""),
+                pos_str,
                 tp_str,
             ))
         self._status_var.set(f"{len(rows)} position(s) loaded")
@@ -205,3 +225,4 @@ class IncreaseDecreaseTab:
         except Exception as exc:
             messagebox.showerror("Error", str(exc))
             raise
+

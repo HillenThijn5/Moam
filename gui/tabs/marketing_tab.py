@@ -1,7 +1,10 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
 from datetime import date, timedelta, datetime
-from statics.data import CURRENCIES, MARKETING_PRODUCT_TYPES, UNDERLYINGS
+from statics.data import (
+    CURRENCIES, MATURITIES, MARKETING_PRODUCT_TYPES, MARKETING_ISSUERS,
+    UNDERLYINGS, SHAREPOINT_SUMMARY_PATH,
+)
 from MarketingMail.models import MarketingProduct
 from MarketingMail.mail_service import create_and_send_marketing_mail
 from statics.data import MARKETING_PARAMETER_CONFIG as PARAMETER_CONFIG
@@ -30,6 +33,19 @@ class MarketingMailTab:
         # Asianing vars persist across product type changes
         self._asianing_tail_var = tk.StringVar(value="")
         self._asianing_obs_var = tk.StringVar(value="")
+
+        # ── SharePoint toolbar ────────────────────────────────────────────
+        toolbar = ttk.Frame(self.frame)
+        toolbar.pack(fill="x", padx=10, pady=(8, 0))
+        ttk.Button(
+            toolbar, text="📋 Load from SharePoint",
+            command=self._open_sharepoint_picker,
+        ).pack(side="left", padx=(0, 8))
+        ttk.Label(
+            toolbar,
+            text="Auto-fill current product form from the SharePoint deal list",
+            foreground="#888", font=("Segoe UI", 8),
+        ).pack(side="left")
 
         # Two-column top: left = settings, right = product parameters
         top_frame = ttk.Frame(self.frame)
@@ -64,6 +80,16 @@ class MarketingMailTab:
         product_combo.bind("<<ComboboxSelected>>", self._on_product_type_changed)
         row += 1
 
+        # Issuer
+        ttk.Label(info_frame, text="Issuer:").grid(row=row, column=0, sticky="w", padx=5, pady=4)
+        self.vars["issuer"] = tk.StringVar(value=MARKETING_ISSUERS[0])
+        issuer_combo = ttk.Combobox(
+            info_frame, textvariable=self.vars["issuer"],
+            values=MARKETING_ISSUERS, state="readonly", width=30,
+        )
+        issuer_combo.grid(row=row, column=1, padx=5, pady=4)
+        row += 1
+
         # Underlying — UnderlyingSearchEntry (same pattern as doc mail / PC mail)
         ttk.Label(info_frame, text="Underlying:").grid(row=row, column=0, sticky="w", padx=5, pady=4)
         ul_pick_row = ttk.Frame(info_frame)
@@ -96,6 +122,13 @@ class MarketingMailTab:
         self.vars["currency"] = tk.StringVar()
         ttk.Combobox(info_frame, textvariable=self.vars["currency"],
                      values=CURRENCIES, state="readonly", width=30).grid(row=row, column=1, padx=5, pady=4)
+        row += 1
+
+        # Maturity
+        ttk.Label(info_frame, text="Maturity:").grid(row=row, column=0, sticky="w", padx=5, pady=4)
+        self.vars["maturity"] = tk.StringVar(value="5Y")
+        ttk.Combobox(info_frame, textvariable=self.vars["maturity"],
+                     values=MATURITIES, state="readonly", width=30).grid(row=row, column=1, padx=5, pady=4)
         row += 1
 
         # Parameter widget state
@@ -327,6 +360,81 @@ class MarketingMailTab:
     def _on_product_type_changed(self, event=None):
         self._update_params_widgets()
 
+    # ──────────────────────────── SharePoint loader ───────────────────────────
+
+    # Maps SharePoint product name → Marketing Mail product type key
+    _SP_PRODUCT_MAP: dict[str, str] = {
+        "Trigger Plus Note":          "TRIGGER",
+        "Memory Coupon":              "MEMORY_COUPON",
+        "Index Garantie Note":        "INDEX_GARANTIE",
+        "Index Garantie Note Capped": "INDEX_GARANTIE_CAPPED",
+    }
+
+    # Maps SharePoint issuer short code → full MARKETING_ISSUERS string
+    # Keys match what sharepoint/parser.py ISSUER_CODE_MAP returns
+    _SP_ISSUER_MAP: dict[str, str] = {
+        "VLK":                 MARKETING_ISSUERS[0],
+        "BNP Paribas Issuance": MARKETING_ISSUERS[1],
+        "UBS AG":              MARKETING_ISSUERS[2],
+        "Société Générale":    MARKETING_ISSUERS[3],
+    }
+
+    def _open_sharepoint_picker(self):
+        from gui.dialogs.sharepoint_picker import SharePointPickerDialog
+        dlg = SharePointPickerDialog(
+            self.frame.winfo_toplevel(),
+            str(SHAREPOINT_SUMMARY_PATH),
+        )
+        if dlg.result:
+            self._load_from_sharepoint(dlg.result)
+
+    def _load_from_sharepoint(self, deal: dict):
+        """Auto-fill the current product form from a parsed SharePoint deal."""
+        # Product type
+        product_type = self._SP_PRODUCT_MAP.get(deal.get("product", ""))
+        if product_type and product_type in MARKETING_PRODUCT_TYPES:
+            self.vars["product_type"].set(product_type)
+            self._prev_fixed = set()
+            self._update_params_widgets()
+
+        # Issuer
+        issuer = self._SP_ISSUER_MAP.get(deal.get("issuer", ""))
+        if issuer:
+            self.vars["issuer"].set(issuer)
+
+        # Currency
+        if deal.get("currency") and deal["currency"] in CURRENCIES:
+            self.vars["currency"].set(deal["currency"])
+
+        # Maturity ("5Y", "7Y" — already in MATURITIES format)
+        if deal.get("maturity") and deal["maturity"] in MATURITIES:
+            self.vars["maturity"].set(deal["maturity"])
+
+        # Underlyings
+        self.selected_underlyings.clear()
+        self._ul_search.clear()
+        for ul in deal.get("underlyings", []):
+            ul = ul.strip().upper()
+            if ul:
+                self.selected_underlyings.append(ul)
+        self._refresh_ul_display()
+
+        # Payoff params — fill whatever SP parsed; user can adjust remainder
+        for key in ["param1", "param2", "param3", "param4"]:
+            val = deal.get(key, "")
+            if val:
+                self.pv_vars[key].set(val)
+
+        # Dates — override entries if SP has them
+        if deal.get("trade_date"):
+            self._trade_override.set(True)
+            self._toggle_trade_date()
+            self._trade_date_var.set(deal["trade_date"])
+        if deal.get("issue_date"):
+            self._issue_override.set(True)
+            self._toggle_issue_date()
+            self._issue_date_var.set(deal["issue_date"])
+
     # ──────────────────────────── date helpers ────────────────────────────────
 
     def _toggle_trade_date(self):
@@ -397,6 +505,8 @@ class MarketingMailTab:
             "product_type": product_type,
             "currency":     currency,
             "underlyings":  underlyings,
+            "maturity":     self.vars["maturity"].get() or "5Y",
+            "issuer":       self.vars["issuer"].get() or MARKETING_ISSUERS[0],
             "start_date":   self._get_trade_date_model_fmt(),
             "issue_date":   self._get_issue_date_model_fmt(),
             **params,
@@ -406,6 +516,8 @@ class MarketingMailTab:
         self.vars["product_type"].set("TRIGGER")
         self._prev_fixed = set()
         self.vars["currency"].set("")
+        self.vars["maturity"].set("5Y")
+        self.vars["issuer"].set(MARKETING_ISSUERS[0])
         self.selected_underlyings.clear()
         self._ul_search.clear()
         self._refresh_ul_display()
@@ -429,7 +541,7 @@ class MarketingMailTab:
             if p.get("issue_date"):
                 extras.append(f"issue={p['issue_date']}")
             extra_txt = (" | " + ", ".join(extras)) if extras else ""
-            self.products_listbox.insert("end", f"{i}) {p['product_type']} | {u} | {p['currency']}{extra_txt}")
+            self.products_listbox.insert("end", f"{i}) {p['product_type']} | {u} | {p['currency']} | {p.get('maturity', '5Y')}{extra_txt}")
         self.count_label.config(text=f"{len(self.products)}/{self.max_products}")
 
     def on_add_product(self):
@@ -473,11 +585,15 @@ class MarketingMailTab:
             marketing_products = []
             for p in products_to_send:
                 underlying_str = " / ".join(p.get("underlyings", []))
+                mat_gui = p.get("maturity", "5Y")
+                mat_model = mat_gui.replace("Y", " jaar").replace("y", " jaar")
                 marketing_products.append(
                     MarketingProduct(
                         product_type=p["product_type"],
                         currency=p["currency"],
                         underlying=underlying_str,
+                        maturity=mat_model,
+                        issuer=p.get("issuer", MARKETING_ISSUERS[0]),
                         coupon_protection=p.get("param1"),
                         participation=p.get("param2"),
                         barrier_cap=p.get("param3"),

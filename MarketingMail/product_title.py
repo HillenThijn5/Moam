@@ -2,8 +2,24 @@
 from datetime import datetime
 from statics.data import UNDERLYING_FULL_NAMES, UNDERLYING_ALIASES, MARKETING_PRODUCT_TYPE_NAMES
 
+# Maps full issuer string (as stored in the model) → short code for product titles
+_ISSUER_SHORT: dict[str, str] = {
+    "Van Lanschot Kempen N.V.": "VLK",
+    "BNP Paribas Issuance B.V.": "BNP",
+    "UBS AG": "UBS",
+    "SG Issuer": "SG",
+}
+
 # Backward-compatible alias used by other modules
 PRODUCT_TYPE_NAMES = MARKETING_PRODUCT_TYPE_NAMES
+
+
+def _shorten_issuer(issuer: str) -> str:
+    """Return the short code for a full issuer string, e.g. 'VLK', 'BNP', 'UBS', 'SG'."""
+    for full, short in _ISSUER_SHORT.items():
+        if issuer.startswith(full):
+            return short
+    return issuer  # fallback: use as-is
 
 
 
@@ -44,8 +60,9 @@ def extract_year_short(date_str: str) -> str:
 
 
 def maturity_to_years(maturity: str) -> int:
-    """'5 jaar' → 5"""
-    return int(maturity.split()[0])
+    """'5 jaar' or '5Y' → 5"""
+    token = maturity.split()[0]       # '5' from '5 jaar', '5Y' from '5Y'
+    return int(token.rstrip("Yy"))
 
 
 def get_maturity_years_range(issue_date: str, maturity: str) -> str:
@@ -61,7 +78,7 @@ def get_maturity_years_range(issue_date: str, maturity: str) -> str:
     """
     start_year = extract_year_short(issue_date)
     maturity_years = maturity_to_years(maturity)
-    end_year = str(int(start_year) + maturity_years)
+    end_year = str((int(start_year) + maturity_years) % 100).zfill(2)
     return f"{start_year}-{end_year}"
 
 
@@ -70,10 +87,7 @@ def generate_product_title(product: dict) -> str:
     Generate product title with ALIAS (not full name) and maturity.
     'VLK Trigger Plus Note Eurozone 26-31 USD' (uses alias, not full name)
     """
-    issuer = (
-        product.get("issuer", "")
-        .replace("Van Lanschot Kempen N.V.", "VLK")
-    )
+    issuer = _shorten_issuer(product.get("issuer", ""))
 
     product_type = PRODUCT_TYPE_NAMES.get(
         product.get("product_type"),
