@@ -1,6 +1,6 @@
 # PCMail/testing_send.py
-# Development sample — used only when running main.py directly for manual testing.
-# Not used in production (the GUI builds PCMailProduct from user input).
+# Ontwikkelvoorbeeld — alleen gebruikt wanneer main.py direct wordt gestart voor handmatig testen.
+# Niet gebruikt in productie (de GUI bouwt PCMailProduct op uit gebruikersinvoer).
 
 from PCMail.models.inputdefinition import PCMailProduct, Underlying
 from PCMail.builders.dates import build_trade_and_issue_dates

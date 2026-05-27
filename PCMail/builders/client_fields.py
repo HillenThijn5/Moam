@@ -1,15 +1,15 @@
 """
-Client-specific text builders.
+Klant-specifieke tekstbouwers.
 
-Maps client name → jurisdiction, distributor code, and full client description
-for use in the Word template context.
+Koppelt klantnaam → jurisdictie, distributeurcode en volledige klantomschrijving
+voor gebruik in de context van het Word-sjabloon.
 """
 
 
 def build_client_text(client: str) -> str:
     """
-    Expands 'VL Belgium' to include the MiFID retail client disclaimer.
-    All other clients are returned as-is.
+    Breidt 'VL Belgium' uit met de MiFID-disclaimer voor retailklanten.
+    Alle andere klanten worden ongewijzigd teruggegeven.
     """
     if client == "VL Belgium":
         return (
@@ -20,7 +20,7 @@ def build_client_text(client: str) -> str:
 
 
 def build_jurisdiction(client: str) -> str:
-    """Returns the jurisdiction string based on the client."""
+    """Geeft de jurisdictiestring terug op basis van de klant."""
     if not client or not client.strip():
         return ""
 
@@ -36,8 +36,8 @@ def build_jurisdiction(client: str) -> str:
 
 def build_distributor(client: str) -> str:
     """
-    Maps client name to distributor code.
-    All VL* clients distribute through VLK; others are their own distributor.
+    Zet de klantnaam om naar een distributeurcode.
+    Alle VL*-klanten distribueren via VLK; anderen zijn hun eigen distributeur.
     """
     client = (client or "").strip()
     return "VLK" if client.startswith("VL") else client

@@ -1,7 +1,7 @@
 # Documentatie_Mail/data.py
 """
-Build email data structure for Documentatie Mail.
-Converts raw inputs into the format needed by the email builder.
+Bouw de datastructuur voor de Documentatie Mail op.
+Zet ruwe invoer om naar het formaat dat de email builder nodig heeft.
 """
 
 from datetime import date
@@ -21,23 +21,23 @@ def build_email_data(
         sender_name: str = None,
 ) -> dict:
     """
-    Build the complete email data dictionary for Documentatie Mail.
+    Bouw de volledige email-data-dict voor de Documentatie Mail.
 
-    Args:
-        issuer: Issuer name
-        currency: Currency code (e.g. EUR)
-        product_type: Product type name
-        maturity: Maturity string (e.g. "3Y")
-        isin: ISIN code
-        trades: List of trade dicts with keys: adviser, amount, [price]
-        underlyings: List of underlying tickers
-        to: List of TO recipient names
-        cc: List of CC recipient names
-        vlk_code: VL code to display in email
-        sender_name: Name of sender
+    Parameters:
+        issuer: Naam van de issuer
+        currency: Valutacode (bijv. EUR)
+        product_type: Naam van het producttype
+        maturity: Looptijdstring (bijv. "3Y")
+        isin: ISIN-code
+        trades: Lijst met trade-dicts met de sleutels: adviser, amount, [price]
+        underlyings: Lijst met underlying-tickers
+        to: Lijst met namen voor TO-ontvangers
+        cc: Lijst met namen voor CC-ontvangers
+        vlk_code: VL-code die in de mail moet komen
+        sender_name: Naam van de afzender
 
-    Returns:
-        dict: Complete email data ready for email_builder
+    Geeft terug:
+        dict: Volledige email-data klaar voor email_builder
     """
     return {
         "sender_name": sender_name,

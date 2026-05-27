@@ -1,7 +1,7 @@
-# gui/dialogs/sharepoint_picker.py
+# gui/sharepointgui/sharepoint_picker.py
 """
-Modal dialog that loads deals from the SharePoint summary Excel and
-lets the user select one to auto-fill the PC Mail form.
+Modale dialoog die deals laadt uit de SharePoint-samenvattings-Excel en
+de gebruiker er één laat kiezen om het PC Mail-formulier automatisch te vullen.
 """
 from __future__ import annotations
 
@@ -12,9 +12,9 @@ from tkinter import ttk, messagebox
 
 class SharePointPickerDialog:
     """
-    Opens a Toplevel, loads deals from the SharePoint Excel in a background
-    thread, shows them in a Treeview, and returns the selected parsed deal
-    in ``self.result`` after the window closes.
+    Opent een Toplevel, laadt deals uit de SharePoint-Excel in een achtergrondthread,
+    toont ze in een Treeview en zet de gekozen verwerkte deal in ``self.result``
+    nadat het venster is gesloten.
     """
 
     def __init__(self, parent, excel_path: str):
@@ -37,12 +37,12 @@ class SharePointPickerDialog:
 
     # ── UI ────────────────────────────────────────────────────────────────
     def _build_ui(self):
-        # Status
+        # Statusmelding
         self._status_var = tk.StringVar(value="Loading deals…")
         ttk.Label(self.top, textvariable=self._status_var,
                   foreground="#555").pack(anchor="w", padx=12, pady=(8, 2))
 
-        # Treeview
+        # Treeview-lijst
         tree_frame = ttk.Frame(self.top)
         tree_frame.pack(fill="both", expand=True, padx=12, pady=4)
 
@@ -68,7 +68,7 @@ class SharePointPickerDialog:
         self._tree.bind("<<TreeviewSelect>>", self._on_select)
         self._tree.bind("<Double-1>", lambda _: self._on_load())
 
-        # Preview
+        # Voorvertoning
         preview_frame = ttk.LabelFrame(self.top, text="Parsed fields preview")
         preview_frame.pack(fill="x", padx=12, pady=4)
         self._preview_var = tk.StringVar(value="—")
@@ -77,7 +77,7 @@ class SharePointPickerDialog:
             wraplength=920, justify="left",
         ).pack(padx=8, pady=5)
 
-        # Buttons
+        # Knoppen
         btn_frame = ttk.Frame(self.top)
         btn_frame.pack(fill="x", padx=12, pady=8)
         ttk.Button(btn_frame, text="Load into form",
@@ -85,7 +85,7 @@ class SharePointPickerDialog:
         ttk.Button(btn_frame, text="Cancel",
                    command=self.top.destroy).pack(side="left", padx=4)
 
-    # ── Data fetching ─────────────────────────────────────────────────────
+    # ── Data ophalen ─────────────────────────────────────────────────────
     def _fetch(self):
         def _run():
             try:
@@ -97,7 +97,7 @@ class SharePointPickerDialog:
                 rows   = read_deals(self._excel_path)
                 parsed = [parse_deal(r) for r in rows]
 
-                # Show file modification time so the user can verify freshness
+                # Toon de wijzigingstijd van het bestand zodat de gebruiker kan nakijken hoe vers het is
                 try:
                     mtime = os.path.getmtime(self._excel_path)
                     from datetime import datetime
@@ -127,7 +127,7 @@ class SharePointPickerDialog:
             f"{count} deal(s) loaded — double-click or select + Load{ts_part}"
         )
 
-    # ── Selection ─────────────────────────────────────────────────────────
+    # ── Selecteren ────────────────────────────────────────────────────────
     def _on_select(self, _=None):
         sel = self._tree.selection()
         if not sel:

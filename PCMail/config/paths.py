@@ -7,12 +7,12 @@ import tempfile
 
 def project_root() -> Path:
     """
-    Returns the project root folder (MoamProject),
-    both in dev and in PyInstaller onefile EXE.
-    External data files (xlsx/docx) live beside the EXE, not inside it.
+    Geeft de hoofdmap van het project (MoamProject) terug,
+    zowel in ontwikkeling als in een PyInstaller onefile-exe.
+    Externe databestanden (xlsx/docx) staan naast de EXE, niet erin.
     """
     if getattr(sys, "frozen", False):
-        # Onefile EXE: data files sit next to the executable
+        # Onefile-EXE: databestanden staan naast het uitvoerbare bestand
         return Path(sys.executable).parent
     else:
         # paths.py → config → PCMail → MoamProject
@@ -21,14 +21,14 @@ def project_root() -> Path:
 
 def resource_path(relative_path: str) -> Path:
     """
-    Build absolute path to a bundled resource.
-    `relative_path` must be relative to project root.
+    Bouw een absoluut pad naar een meegeleverd bestand.
+    `relative_path` moet relatief zijn aan de projectroot.
     """
     return project_root() / relative_path
 
 
 # ------------------------------------------------------------------
-# PCMail resources
+# PCMail-bronnen
 # ------------------------------------------------------------------
 
 WORD_TEMPLATE_PATH = resource_path(
@@ -44,7 +44,7 @@ STATIC_DATA_PATH = resource_path(
 )
 
 # ------------------------------------------------------------------
-# Marketing mail resources
+# Marketingmail-bronnen
 # ------------------------------------------------------------------
 
 MARKETING_EXCEL_TEMPLATE_PATH = resource_path(
@@ -52,7 +52,7 @@ MARKETING_EXCEL_TEMPLATE_PATH = resource_path(
 )
 
 # ------------------------------------------------------------------
-# Temp output folder (always writable, outside EXE)
+# Tijdelijke uitvoermap (altijd schrijfbaar, buiten de EXE)
 # ------------------------------------------------------------------
 
 TEMP_DIR = Path(tempfile.gettempdir()) / "pc_mail_generator"

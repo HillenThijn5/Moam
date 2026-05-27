@@ -1,14 +1,17 @@
 # sharepoint/reader.py
 """
-Reads (and optionally refreshes) the SharePoint "New Notes Summary" Excel file.
-The file is cached locally via OneDrive sync, so we copy it to a temp path
-to avoid permission errors when the file is also open in Excel.
+Leest (en ververst optioneel) het SharePoint-Excelbestand "New Notes Summary".
+Het bestand wordt lokaal gecachet via OneDrive-sync, dus we kopiëren het naar een tijdelijk pad
+om permissiefouten te voorkomen wanneer het bestand ook in Excel is geopend.
 
-Refresh strategy: call start_background_refresh() once at app startup.
-The picker dialog just reads; it never triggers another refresh.
+Verversstrategie: roep start_background_refresh() één keer aan bij het opstarten van de app.
+Het selectiedialoogvenster leest alleen; het start nooit nog een refresh.
 """
 from __future__ import annotations
 
+import ctypes
+import msvcrt
+import os
 import shutil
 import tempfile
 import threading
@@ -19,16 +22,54 @@ import openpyxl
 
 SHEET_NAME = "New Notes Summary"
 
-# Module-level state so the app can check / wait on the startup refresh
+# Status op moduleniveau zodat de app de opstartrefresh kan controleren / afwachten
 _refresh_thread: threading.Thread | None = None
 _refresh_done   = threading.Event()
 _refresh_error: str = ""
 
 
+# ── Bestandskopie met gedeelde leestoegang (omzeilt OneDrive-/Excel-locks) ──
+
+_FILE_SHARE_READ  = 0x00000001
+_FILE_SHARE_WRITE = 0x00000002
+_OPEN_EXISTING    = 3
+_GENERIC_READ     = 0x80000000
+
+
+def _shared_copy(src: Path, dst: Path) -> None:
+    """
+    Kopieer *src* → *dst* met gedeelde leestoegang van Windows.
+    Dit werkt zelfs wanneer OneDrive of Excel een lock op het bronbestand heeft.
+    Valt terug op shutil.copy2 op niet-Windows-systemen of als de API-aanroep onverwacht mislukt.
+    """
+    try:
+        kernel32 = ctypes.windll.kernel32
+        handle = kernel32.CreateFileW(
+            str(src),
+            _GENERIC_READ,
+            _FILE_SHARE_READ | _FILE_SHARE_WRITE,
+            None,
+            _OPEN_EXISTING,
+            0,
+            None,
+        )
+        if handle == -1:
+            raise ctypes.WinError(ctypes.get_last_error())
+
+        # Zet Win32-handle → C-bestandsdescriptor → Python-bestandsobject om
+        fd = msvcrt.open_osfhandle(handle, os.O_RDONLY | os.O_BINARY)
+        with open(fd, "rb") as fsrc, open(dst, "wb") as fdst:
+            while chunk := fsrc.read(1 << 20):  # blokken van 1 MB
+                fdst.write(chunk)
+    except OSError:
+        # Laatste redmiddel: normale kopie (kan mislukken als de vergrendeling exclusief is)
+        shutil.copy2(src, dst)
+
+
 def start_background_refresh(excel_path: str | Path, source_path: str | Path | None = None) -> None:
     """
-    Kick off a background refresh.  Safe to call from the main thread; returns immediately.
-    source_path: if given (e.g. OneDrive copy), is used as the fast-copy source.
+    Start een refresh op de achtergrond. Veilig om vanuit de hoofdthread aan te roepen; keert meteen terug.
+    source_path: indien opgegeven (bijv. OneDrive-kopie), wordt gebruikt als snelle kopiebron.
     """
     global _refresh_thread, _refresh_error
     _refresh_done.clear()
@@ -49,14 +90,14 @@ def start_background_refresh(excel_path: str | Path, source_path: str | Path | N
 
 def _get_excel_proc_handle(xl) -> object | None:
     """
-    Return a Win32 process handle for the Excel instance, or None on failure.
-    Uses xl.ProcessID (COM property) — reliable even for windowless instances.
-    Falls back to the Hwnd approach for older Excel versions.
+    Geef een Win32-proceshandle terug voor de Excel-instantie, of None bij mislukking.
+    Gebruikt xl.ProcessID (COM-eigenschap) — betrouwbaar, ook voor instanties zonder venster.
+    Valt terug op de Hwnd-aanpak voor oudere Excel-versies.
     """
     try:
         import win32api
         import win32con
-        # xl.ProcessID is available on Excel 2007+ and works for hidden instances
+        # xl.ProcessID is beschikbaar op Excel 2007+ en werkt voor verborgen instanties
         try:
             pid = xl.ProcessID
         except Exception:
@@ -74,18 +115,18 @@ def _get_excel_proc_handle(xl) -> object | None:
 
 def _kill_excel_process(proc_handle) -> None:
     """
-    Wait up to 15 s for the Excel process to exit cleanly after Quit().
-    If it is still alive, terminate it forcefully and close the handle.
+    Wacht tot 15 s totdat het Excel-proces netjes is afgesloten na Quit().
+    Als het nog steeds leeft, beëindig het dan geforceerd en sluit de handle.
     """
     if proc_handle is None:
-        time.sleep(5)   # fallback: blind wait (hidden Excel, no handle)
+        time.sleep(5)   # terugval: blind wachten (verborgen Excel, geen handle)
         return
     try:
         import win32api
         import win32event
         import win32con
         result = win32event.WaitForSingleObject(proc_handle, 15_000)
-        if result != win32con.WAIT_OBJECT_0:   # did not exit in time
+        if result != win32con.WAIT_OBJECT_0:   # niet op tijd afgesloten
             win32api.TerminateProcess(proc_handle, 0)
     except Exception:
         pass
@@ -99,26 +140,24 @@ def _kill_excel_process(proc_handle) -> None:
 
 def refresh_excel(excel_path: str | Path, source_path: str | Path | None = None) -> None:
     """
-    Update the local SharePoint summary file.
+    Werk het lokale SharePoint-overzichtsbestand bij.
 
-    Strategy (in priority order):
-      1. If *source_path* exists (e.g. an OneDrive sync copy), just copy it → *excel_path*.
-         This is instant and never touches Excel at all.
-      2. Otherwise open *excel_path* in a fresh hidden Excel instance, run RefreshAll,
-         save, then quit.  The instance is always separate from any open Excel the user has.
+    Strategie (in volgorde van prioriteit):
+      1. Als *source_path* bestaat (bijv. een OneDrive-synckopie), kopieer het dan → *excel_path*
+         en voer daarna een COM-refresh uit op de lokale kopie om Power Query-data bij te werken.
+      2. Voer anders direct een COM-refresh uit op *excel_path*.
 
-    Raises on failure so the caller can report the error.
+    Gooit een fout bij mislukking zodat de aanroeper die kan rapporteren.
     """
     dst = Path(excel_path).resolve()
 
-    # ── Strategy 1: copy from OneDrive ───────────────────────────────────
+    # ── Strategie 1: kopieer eerst een verse bron vanuit OneDrive ──────────
     if source_path:
         src = Path(source_path).resolve()
         if src.exists():
-            shutil.copy2(src, dst)
-            return
+            _shared_copy(src, dst)
 
-    # ── Strategy 2: COM refresh ───────────────────────────────────────────
+    # ── COM-refresh om Power Query uit te voeren ────────────────────────────
     if not dst.exists():
         raise FileNotFoundError(f"SharePoint file not found: {dst}")
 
@@ -126,19 +165,16 @@ def refresh_excel(excel_path: str | Path, source_path: str | Path | None = None)
         import pythoncom
         import win32com.client as win32
     except ImportError:
-        raise RuntimeError(
-            "pywin32 is not installed — cannot refresh via Excel COM.\n"
-            "Install it with: pip install pywin32"
-        )
+        return  # geen pywin32 — refresh stilzwijgend overslaan
 
-    tmp = Path(tempfile.gettempdir()) / f"_sp_refresh_{dst.name}"
-    shutil.copy2(dst, tmp)
+    # Gebruik een uniek tijdelijk bestand om conflicten met oude locks van eerdere runs te voorkomen
+    import uuid
+    tmp = Path(tempfile.gettempdir()) / f"_sp_refresh_{uuid.uuid4().hex[:8]}_{dst.name}"
+    _shared_copy(dst, tmp)
     tmp_path = str(tmp)
 
     pythoncom.CoInitialize()
     try:
-        # Prefer a running Excel instance (fast — no startup cost).
-        # Fall back to a new hidden instance if none is open.
         try:
             xl = win32.GetActiveObject("Excel.Application")
             we_started_excel = False
@@ -147,9 +183,8 @@ def refresh_excel(excel_path: str | Path, source_path: str | Path | None = None)
             xl = win32.DispatchEx("Excel.Application")
             we_started_excel = True
             proc_handle = _get_excel_proc_handle(xl)
-            xl.Visible = False   # hide only the instance WE created
+            xl.Visible = False
 
-        # Freeze all visual updates so the user sees nothing
         prev_screen  = xl.ScreenUpdating
         prev_alerts  = xl.DisplayAlerts
         prev_events  = xl.EnableEvents
@@ -164,7 +199,6 @@ def refresh_excel(excel_path: str | Path, source_path: str | Path | None = None)
             wb.Save()
             wb.Close(SaveChanges=False)
         finally:
-            # Always restore the shared instance's settings
             xl.ScreenUpdating = prev_screen
             xl.DisplayAlerts  = prev_alerts
             xl.EnableEvents   = prev_events
@@ -173,8 +207,15 @@ def refresh_excel(excel_path: str | Path, source_path: str | Path | None = None)
                 xl.Quit()
                 _kill_excel_process(proc_handle)
 
-        # Copy refreshed temp back to the project file
-        shutil.copy2(tmp, dst)
+        # Kopieer ververste data terug — probeer opnieuw als OneDrive dst kort vergrendelt
+        for attempt in range(3):
+            try:
+                shutil.copy2(tmp, dst)
+                break
+            except PermissionError:
+                time.sleep(2)
+        else:
+            raise PermissionError(f"Cannot write refreshed data back to {dst}")
     finally:
         try:
             pythoncom.CoUninitialize()
@@ -188,16 +229,16 @@ def refresh_excel(excel_path: str | Path, source_path: str | Path | None = None)
 
 def read_deals(excel_path: str | Path) -> list[dict]:
     """
-    Read all rows from the SharePoint summary sheet.
-    Returns a list of raw dicts keyed by column header.
+    Lees alle rijen uit het SharePoint-overzichtstabblad.
+    Geeft een lijst met ruwe dicts terug, gesleuteld op kolomkop.
     """
     src = Path(excel_path)
     if not src.exists():
         raise FileNotFoundError(f"SharePoint summary not found: {src}")
 
-    # Copy to temp to avoid OneDrive / Excel file-lock
+    # Kopieer naar een tijdelijk bestand om OneDrive-/Excel-bestandslocks te vermijden
     tmp = Path(tempfile.gettempdir()) / f"sp_summary_{src.stem}.xlsx"
-    shutil.copy2(src, tmp)
+    _shared_copy(src, tmp)
 
     try:
         wb = openpyxl.load_workbook(tmp, data_only=True, read_only=True)
@@ -218,7 +259,7 @@ def read_deals(excel_path: str | Path) -> list[dict]:
     if not rows:
         return []
 
-    # Strip surrounding quotes that Power Query sometimes adds to headers
+    # Verwijder omringende aanhalingstekens die Power Query soms aan kopteksten toevoegt
     headers = [
         str(h).strip('"').strip() if h is not None else "" for h in rows[0]
     ]

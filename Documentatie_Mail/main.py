@@ -1,6 +1,6 @@
 # Documentatie_Mail/main.py
 """
-Documentatie Mail module entry point (for testing).
+Startpunt van de Documentatie Mail-module (voor tests).
 """
 
 from Documentatie_Mail.data import build_email_data
@@ -8,7 +8,7 @@ from Documentatie_Mail.service import send_documentatie_mail
 
 
 def main():
-    """Test function - run manually to verify the module works."""
+    """Testfunctie - handmatig draaien om te kijken of de module werkt."""
     print("Import check OK — run the GUI to send emails.")
 
 

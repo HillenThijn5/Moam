@@ -9,20 +9,20 @@ from openpyxl.styles import PatternFill
 def render_target_market(b24_value: str, series: str, sheet_name: str | None = None) -> str:
     wb = load_workbook(str(EXCEL_TM_TEMPLATE_PATH))
 
-    # Pick sheet
+    # Kies het tabblad
     ws = wb[sheet_name] if sheet_name else wb.active
 
-    # ✅ Update the one cell
+    # ✅ Werk die ene cel bij
     cell = ws["B24"]
     cell.value = b24_value
     apply_target_market_fill(cell, b24_value)
 
-    # ✅ Remove all other sheets (preserves formatting of the kept one)
+    # ✅ Verwijder alle andere tabbladen (behoudt de opmaak van het overgebleven tabblad)
     for s in list(wb.worksheets):
         if s.title != ws.title:
             wb.remove(s)
 
-    # Optional: ensure the remaining sheet has a clean name
+    # Optioneel: geef het overgebleven tabblad een nette naam
     ws.title = "Target Market"
 
     out_path = Path(TEMP_DIR) / f"Target Market - series {series}.xlsx"

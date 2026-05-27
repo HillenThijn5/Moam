@@ -1,14 +1,14 @@
 # sharepoint/parser.py
 """
-Parses raw SharePoint rows into GUI-ready field dicts.
+Zet ruwe SharePoint-rijen om naar GUI-klare veld-dicts.
 
-Title format:
+Titelopmaak:
   "YYYYMMDD - {maturity}Y {product_code} {underlying1} {underlying2?}"
 
-Comments format:
+Opmaak van comments:
   "EUR {size} @{price}% voor {client}\\nHedged EUR {amount} BtB met {party} @{upfront}%"
 
-Van Lanschot Lange_x (long product name) format:
+Opmaak van 'Van Lanschot Lange_x' (lange productnaam):
   Trigger/AC:  "VGN VLK TP 100-90-60 EU 26-31"  → trigger=100, coupon_barrier=90, redemption=60
   IGN:         "GN VLK IGN 95-100p EU 26-31"     → protection=95, participation=100
   IGN Capped:  "GN VLK IGNC 95-100-120 EU 26-31" → protection=95, participation=100, cap=120
@@ -19,8 +19,9 @@ from __future__ import annotations
 
 import re
 from datetime import datetime, timedelta
+from statics.loader import resolve_adviser_name
 
-# Maps SharePoint title product codes → PC Mail product names
+# Koppelt productcodes uit SharePoint-titels aan productnamen voor PC Mail
 PRODUCT_CODE_MAP: dict[str, str] = {
     "AC":              "Trigger Plus Note",
     "TN":              "Trigger Plus Note",
@@ -40,7 +41,7 @@ JURISDICTION_TO_CLIENT: dict[str, str] = {
     "switzerland": "VL Switzerland",
 }
 
-# Maps issuer abbreviations in the long name → full ISSUERS list values
+# Koppelt issuer-afkortingen in de lange naam aan volledige waarden uit ISSUERS
 ISSUER_CODE_MAP: dict[str, str] = {
     "VLK":    "VLK",
     "BNP":    "BNP Paribas Issuance",
@@ -50,16 +51,16 @@ ISSUER_CODE_MAP: dict[str, str] = {
     "SOCGEN": "Société Générale",
 }
 
-# Currency codes that must never be treated as underlyings
+# Valutacodes die nooit als onderliggende waarden mogen worden gezien
 KNOWN_CURRENCIES: set[str] = {
     "EUR", "USD", "GBP", "CHF", "JPY", "SEK", "NOK", "DKK", "AUD", "CAD",
 }
 
 
-# ── Amount helpers ────────────────────────────────────────────────────────────
+# ── Bedraghelpers ─────────────────────────────────────────────────────────────
 
 def _parse_amount(s: str) -> float:
-    """Convert '300k', '1mio', '1.5 mio', '295' → float in EUR."""
+    """Zet '300k', '1mio', '1.5 mio', '295' om naar een float in EUR."""
     s = s.strip().replace(",", "").replace(" ", "")
     m = re.match(r"^([\d.]+)(k|mio)?$", s, re.IGNORECASE)
     if not m:
@@ -71,14 +72,14 @@ def _parse_amount(s: str) -> float:
     elif suffix == "k":
         return n * 1_000
     else:
-        # No suffix: treat as thousands for typical deal sizes (< 10 000)
+        # Zonder suffix: behandel als duizenden bij gebruikelijke dealgroottes (< 10 000)
         return n * 1_000 if n < 10_000 else n
 
 
 def _sum_amount_expr(expr: str) -> float:
     """
-    Sum all numeric amounts in expressions like '100K+ EUR 250K + EUR 200K'.
-    Strips embedded currency symbols first.
+    Tel alle numerieke bedragen op in expressies zoals '100K+ EUR 250K + EUR 200K'.
+    Verwijdert eerst ingesloten valutacodes.
     """
     clean = re.sub(r"\b(?:EUR|USD|GBP|CHF|JPY|SEK|NOK|DKK)\b", "", expr, flags=re.IGNORECASE)
     parts = re.findall(r"[\d,.]+\s*(?:k|mio)?", clean, re.IGNORECASE)
@@ -86,7 +87,7 @@ def _sum_amount_expr(expr: str) -> float:
 
 
 def _format_amount(eur: float) -> str:
-    """Format 1 950 000 → '1.95 mio', 300 000 → '300k'."""
+    """Formatteer 1 950 000 → '1.95 mio', 300 000 → '300k'."""
     if eur <= 0:
         return ""
     if eur >= 1_000_000:
@@ -98,13 +99,13 @@ def _format_amount(eur: float) -> str:
     return f"{formatted}k"
 
 
-# ── Title parser ──────────────────────────────────────────────────────────────
+# ── Titelparser ───────────────────────────────────────────────────────────────
 
 def parse_title(title: str) -> dict:
     """
-    Parse e.g. '20260504 - 7Y AC SX5E SPX USD' into:
+    Zet bijv. '20260504 - 7Y AC SX5E SPX USD' om naar:
       {"maturity": "7Y", "product": "Trigger Plus Note", "underlyings": ["SX5E", "SPX"]}
-    Currency codes (USD, EUR, …) are filtered out of underlyings.
+    Valutacodes (USD, EUR, …) worden uit de underlyings gefilterd.
     """
     result: dict = {"maturity": "", "product": "", "underlyings": []}
     title = title.strip('"').strip()
@@ -115,13 +116,13 @@ def parse_title(title: str) -> dict:
 
     rest = m.group(2).strip()
 
-    # Maturity: e.g. "5Y", "7Y"
+    # Looptijd: bijv. "5Y", "7Y"
     mat_m = re.match(r"^(\d+Y)\s+(.+)$", rest, re.IGNORECASE)
     if mat_m:
         result["maturity"] = mat_m.group(1).upper()
         rest = mat_m.group(2).strip()
 
-    # Product code — try longest multi-word match first (e.g. "Fixed Rate Note")
+    # Productcode — probeer eerst de langste meerwoordmatch (bijv. "Fixed Rate Note")
     tokens = rest.split()
     product = ""
     underlyings_start = 0
@@ -138,7 +139,7 @@ def parse_title(title: str) -> dict:
         underlyings_start = 1
 
     result["product"] = product
-    # Filter out currency codes so "SX5E USD" → ["SX5E"]
+    # Filter valutacodes weg zodat "SX5E USD" → ["SX5E"]
     result["underlyings"] = [
         t for t in tokens[underlyings_start:]
         if t.upper() not in KNOWN_CURRENCIES
@@ -146,21 +147,21 @@ def parse_title(title: str) -> dict:
     return result
 
 
-# ── Long-name param parser ────────────────────────────────────────────────────
+# ── Parser voor lange naam-parameters ─────────────────────────────────────────
 
 def parse_long_name_params(long_name: str, product: str) -> dict:
     """
-    Extract payoff parameters and issuer from the VL long product name.
+    Haal payoffparameters en issuer uit de lange VL-productnaam.
 
-    Long name format: "{GN|VGN} {ISSUER} {PRODUCT_CODE} {params} {region} {years}"
-      e.g. "VGN VLK TP 100-90-60 EU 26-31"  →  issuer="VLK", param2=100, param3=90, param4=60
+    Opmaak van de lange naam: "{GN|VGN} {ISSUER} {PRODUCT_CODE} {params} {region} {years}"
+      bijv. "VGN VLK TP 100-90-60 EU 26-31"  →  issuer="VLK", param2=100, param3=90, param4=60
 
-    Mapping per product (param keys match PRODUCT_PAYOFF_FIELDS):
+    Indeling per product (param-sleutels komen overeen met PRODUCT_PAYOFF_FIELDS):
       Trigger Plus Note  → param2=trigger/aflossing, param3=coupon_barrier, param4=redemption
       Index Garantie Note         → param1=protection, param2=participation
       Index Garantie Note Capped  → param1=protection, param2=participation, param3=cap
       Memory Coupon      → param3=coupon_barrier, param4=redemption
-      Fixed Rate Note    → param1=premie (e.g. 2.85 from "2.85%")
+      Fixed Rate Note    → param1=premie (bijv. 2.85 uit "2.85%")
     """
     result: dict = {"issuer": "", "param1": "", "param2": "", "param3": "", "param4": ""}
     if not long_name or not product:
@@ -168,14 +169,14 @@ def parse_long_name_params(long_name: str, product: str) -> dict:
 
     ln = long_name.strip('"').strip()
 
-    # Issuer: long name starts with GN or VGN, then issuer abbreviation
-    # e.g. "GN VLK IGN ..." or "VGN VLK TP ..."
+    # Issuer: de lange naam begint met GN of VGN, gevolgd door de issuer-afkorting
+    # bijv. "GN VLK IGN ..." of "VGN VLK TP ..."
     issuer_m = re.match(r"^V?GN\s+(\S+)", ln, re.IGNORECASE)
     if issuer_m:
         abbrev = issuer_m.group(1).upper()
         result["issuer"] = ISSUER_CODE_MAP.get(abbrev, "")
 
-    NUM = r"(\d+(?:\.\d+)?)"   # captures a number with optional decimal
+    NUM = r"(\d+(?:\.\d+)?)"   # vangt een getal met optionele decimalen
 
     if product == "Trigger Plus Note":
         # "100-90-60": trigger=100, coupon_barrier=90, redemption=60
@@ -216,41 +217,41 @@ def parse_long_name_params(long_name: str, product: str) -> dict:
     return result
 
 
-# ── Comments parser ───────────────────────────────────────────────────────────
+# ── Parser voor comments ──────────────────────────────────────────────────────
 
-# Adviser lines: "{optional currency} {amount(s)} @{price}% {optional qualifier} voor {name}"
-# Handles:
+# Adviseurregels: "{optionele valuta} {bedrag(en)} @{price}% {optionele kwalificatie} voor {name}"
+# Ondersteunt:
 #   EUR 300k @100% voor Jan vd Ven
 #   EUR 650k @99.75 reoffer voor stijn
-#   300k @99.75 voor Kurt                      ← no currency prefix
-#   EUR 100K+ EUR 250K + EUR 200K @ 99.8 voor Monique  ← combined amounts
-#   EUR 500k +150k @100% voor Remco            ← add-on amount
-#   EUR 360k ( 250 + 110) @99.75 voor Jean-Paul ← bracketed note
-#   EUR 295 @ 100% done voor Rodney Maes       ← 'done' qualifier
+#   300k @99.75 voor Kurt                      ← zonder valutaprefix
+#   EUR 100K+ EUR 250K + EUR 200K @ 99.8 voor Monique  ← gecombineerde bedragen
+#   EUR 500k +150k @100% voor Remco            ← extra bedrag
+#   EUR 360k ( 250 + 110) @99.75 voor Jean-Paul ← opmerking tussen haakjes
+#   EUR 295 @ 100% done voor Rodney Maes       ← kwalificatie 'done'
 _ADVISER_RE = re.compile(
-    # Optional leading currency
+    # Optionele valuta vooraan
     r"(?:(?:EUR|USD|GBP|CHF|JPY)\s+)?"
-    # Primary amount + optional add-ons (+150k, + EUR 250K, …)
+    # Hoofdbedrag + optionele aanvullingen (+150k, + EUR 250K, …)
     r"([\d,.]+\s*(?:k|mio)?"
     r"(?:\s*\+\s*(?:(?:EUR|USD|GBP|CHF|JPY)\s+)?[\d,.]+\s*(?:k|mio)?)*)"
-    # Optional bracketed clarification e.g. (250 + 110)
+    # Optionele toelichting tussen haakjes, bijv. (250 + 110)
     r"(?:\s*\([^)]*\))?"
-    # Price: @ NNN [%]
+    # Prijs: @ NNN [%]
     r"\s*@\s*([\d.]+)\s*%?"
-    # Optional qualifier: reoffer / re-offer / done
-    r"(?:\s+(?:reoffer|re-offer|done))?"
-    # Recipient
+    # Optionele kwalificatie: reoffer / re-offer / done (vastgelegd voor Belgische flow)
+    r"(\s+(?:reoffer|re-offer|done))?"
+    # Ontvanger
     r"\s+voor\s+([^\n]+?)(?=\s*\n|$|hedged?|btb\b|own\s+book)",
     re.IGNORECASE,
 )
 
-# Hedge party: "BtB met PARTY @RATE%"  or  "BtB with PARTY @RATE%"
+# Hedgepartij: "BtB met PARTY @RATE%" of "BtB with PARTY @RATE%"
 _HEDGE_RE = re.compile(
     r"btb\s+(?:met|with)\s+([\w][\w\s&.']{0,30}?)\s*@\s*([\d.]+)\s*%?",
     re.IGNORECASE,
 )
 
-# Hedged notional: "Hedged EUR NNN BtB"  or  "Hedged BTB with …"
+# Gehedged nominaal: "Hedged EUR NNN BtB" of "Hedged BTB with …"
 _HEDGE_AMT_RE = re.compile(
     r"hedged?\s+(?:(?:EUR|USD|GBP|CHF|JPY)\s+)?([\d,.]+\s*(?:k|mio)?)\s+btb",
     re.IGNORECASE,
@@ -259,12 +260,12 @@ _HEDGE_AMT_RE = re.compile(
 
 def parse_comments(comments: str) -> dict:
     """
-    Extract from free-text comments:
-      - currency (first currency code seen)
-      - hedge party + upfront rate
+    Haal uit vrije comments-tekst:
+      - currency (eerste gevonden valutacode)
+      - hedge_party + upfront-tarief
       - btb_amount
-      - advisers: list of {"name", "amount", "price"} per trade line
-      - total_sold: formatted sum of all adviser amounts (e.g. "1.95 mio")
+      - advisers: lijst met {"name", "amount", "price"} per handelsregel
+      - total_sold: geformatteerde som van alle adviseurbedragen (bijv. "1.95 mio")
     """
     result: dict = {
         "currency": "", "hedge_party": "", "upfront": "", "btb_amount": "",
@@ -275,51 +276,61 @@ def parse_comments(comments: str) -> dict:
 
     comments = comments.strip('"').strip()
 
-    # Currency: first currency code in the text
+    # Valuta: eerste valutacode in de tekst
     cur_m = re.search(r"\b(EUR|USD|GBP|CHF|JPY)\b", comments, re.IGNORECASE)
     if cur_m:
         result["currency"] = cur_m.group(1).upper()
 
-    # Hedge party + upfront
+    # Hedgepartij + upfront
     hedge_m = _HEDGE_RE.search(comments)
     if hedge_m:
         result["hedge_party"] = hedge_m.group(1).strip()
         result["upfront"]     = hedge_m.group(2).strip()
 
-    # BtB notional
+    # BtB-nominaal
     amt_m = _HEDGE_AMT_RE.search(comments)
     if amt_m:
         result["btb_amount"] = amt_m.group(1).strip()
 
-    # Adviser entries
+    # Adviseurregels
     total_eur = 0.0
     for m in _ADVISER_RE.finditer(comments):
-        name = m.group(3).strip().rstrip(",;")
+        name = m.group(4).strip().rstrip(",;")
         if not name or re.search(r"btb|hedged?", name, re.IGNORECASE):
             continue
         amount_expr = m.group(1).strip()
         price       = m.group(2).strip()
+        qualifier   = (m.group(3) or "").strip().lower()
+        is_reoffer  = qualifier in ("reoffer", "re-offer")
         eur = _sum_amount_expr(amount_expr)
         total_eur += eur
         result["advisers"].append({
-            "name":   name,
-            "amount": _format_amount(eur) if eur else amount_expr,
-            "price":  price,
+            "name":      resolve_adviser_name(name),
+            "amount":    _format_amount(eur) if eur else amount_expr,
+            "price":     price,
+            "reoffer":   is_reoffer,
         })
 
     if total_eur > 0:
         result["total_sold"] = _format_amount(total_eur)
 
+    # Detecteer derdepartijcliënt op basis van trefwoorden in comments
+    lower = comments.lower()
+    if "alpha capital" in lower:
+        result["client_override"] = "Alpha Capital Asset Management B.V."
+    elif "oakk" in lower or "cfs" in lower:
+        result["client_override"] = "OAKK Capital (CFS)"
+
     return result
 
 
-# ── Date helper ───────────────────────────────────────────────────────────────
+# ── Datumhelper ───────────────────────────────────────────────────────────────
 
 def _fmt_date(val) -> str:
     """
-    Format a date/datetime as DD/MM/YYYY for the GUI.
-    Excel stores SharePoint UTC dates; Amsterdam (CEST) = UTC+2,
-    so 22:00 UTC is midnight local — add 2 h to get the correct date.
+    Formatteer een date/datetime als DD/MM/YYYY voor de GUI.
+    Excel bewaart SharePoint-UTC-datums; Amsterdam (CEST) = UTC+2,
+    dus 22:00 UTC is lokaal middernacht — voeg 2 h toe voor de juiste datum.
     """
     if val is None:
         return ""
@@ -334,10 +345,22 @@ def _fmt_date(val) -> str:
     return s
 
 
-# ── Main deal parser ──────────────────────────────────────────────────────────
+def _issuer_fallback(raw: dict) -> str:
+    """Detecteer de issuer wanneer de lange VL-naam ontbreekt.
+
+    Als de deal een DIP/SNIP-nummer of een Series heeft, is het een VLK-uitgifte.
+    """
+    dip_snip = str(raw.get("DIP/SNIP") or "").strip('"').strip()
+    series = str(raw.get("Series") or "").strip('"').strip()
+    if dip_snip or series:
+        return "VLK"
+    return ""
+
+
+# ── Hoofdparser voor deals ────────────────────────────────────────────────────
 
 def parse_deal(raw: dict) -> dict:
-    """Convert a raw SharePoint row into a GUI-ready dict."""
+    """Zet een ruwe SharePoint-rij om naar een GUI-klaar dict."""
     title     = str(raw.get("Title")                 or "").strip('"')
     comments  = str(raw.get("Comments")              or "").strip('"')
     long_name = str(raw.get("Van Lanschot Lange_x")  or "").strip('"')
@@ -347,7 +370,7 @@ def parse_deal(raw: dict) -> dict:
     cp = parse_comments(comments)
     pp = parse_long_name_params(long_name, tp["product"])
 
-    # VLK code required: SharePoint stores as Python bool or string "True"/"False"
+    # VLK-code vereist: SharePoint bewaart dit als Python-bool of als string "True"/"False"
     vlk_raw = raw.get("VanLanschot Code?")
     if isinstance(vlk_raw, bool):
         vlk_code = vlk_raw
@@ -355,42 +378,44 @@ def parse_deal(raw: dict) -> dict:
         vlk_code = str(vlk_raw).strip('"').strip().lower() != "false"
 
     return {
-        # ── display ──────────────────────────────────────────────────────
+        # ── weergave ─────────────────────────────────────────────────────
         "title":          title,
         "status":         str(raw.get("Status")   or "").strip('"'),
-        # ── identity ─────────────────────────────────────────────────────
+        # ── identiteit ───────────────────────────────────────────────────
         "series":         str(raw.get("Series")   or "").strip(),
         "isin":           str(raw.get("ISIN")      or "").strip('"'),
         "prospectus_type":str(raw.get("DIP/SNIP")  or "").strip('"'),
         "vlk_code":       vlk_code,
         "vl_code":        str(raw.get("VL CODE")   or "").strip('"').strip(),
-        # ── dates (DD/MM/YYYY for the GUI) ────────────────────────────────
+        # ── datums (DD/MM/YYYY voor de GUI) ──────────────────────────────
         "issue_date":     _fmt_date(raw.get("Issue Date")),
         "trade_date":     _fmt_date(raw.get("DateofResolutions")),
-        # ── product ───────────────────────────────────────────────────────
+        # ── product ──────────────────────────────────────────────────────
         "product":        tp["product"],
         "maturity":       tp["maturity"],
         "underlyings":    tp["underlyings"],
-        # ── issuer + payoff params from long name ─────────────────────────
-        "issuer":         pp["issuer"],
+        # ── issuer + payoffparameters uit lange naam ─────────────────────
+        "issuer":         pp["issuer"]
+                          or _issuer_fallback(raw),
         "param1":         pp["param1"],
         "param2":         pp["param2"],
         "param3":         pp["param3"],
         "param4":         pp["param4"],
-        # ── client ────────────────────────────────────────────────────────
-        "client":         JURISDICTION_TO_CLIENT.get(
+        # ── cliënt ───────────────────────────────────────────────────────
+        "client":         cp.get("client_override")
+                          or JURISDICTION_TO_CLIENT.get(
                               str(raw.get("Jurisdiction") or "").strip('"').lower(), ""
                           ),
-        # ── currency (from comments prefix) ───────────────────────────────
+        # ── valuta (uit comments-prefix) ─────────────────────────────────
         "currency":       cp["currency"],
-        # ── hedge (Hedgeparty col if present, else parse from comments) ───
+        # ── hedge (kolom Hedgeparty indien aanwezig, anders uit comments) ─
         "hedge_party":    hedge_raw or cp["hedge_party"],
         "upfront":        cp["upfront"],
         "btb_amount":     cp["btb_amount"],
-        # ── raw comments (shown in dialog preview) ────────────────────────
+        # ── ruwe comments (getoond in dialoogvoorbeeld) ──────────────────
         "comments":       comments,
-        # ── parsed advisers (for Documentatie mail) ───────────────────────
+        # ── geparste adviseurs (voor Documentatie-mail) ──────────────────
         "advisers":       cp["advisers"],
-        # ── total sold (sum of adviser amounts, for PC Mail) ──────────────
+        # ── total_sold (som van adviseurbedragen, voor PC Mail) ──────────
         "total_sold":     cp["total_sold"],
     }

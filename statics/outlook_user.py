@@ -6,9 +6,9 @@ _cached_first_name: str | None = None
 
 def get_sender_first_name() -> str:
     """
-    Returns the first name of the currently logged-in Outlook user.
-    E.g. 'Thijn Villain' → 'Thijn'. Cached after first call.
-    Falls back to empty string if Outlook is unavailable.
+    Geeft de voornaam van de momenteel ingelogde Outlook-gebruiker terug.
+    Bijv. 'Thijn Villain' → 'Thijn'. Wordt na de eerste aanroep gecachet.
+    Valt terug op een lege string als Outlook niet beschikbaar is.
     """
     global _cached_first_name
     if _cached_first_name is not None:

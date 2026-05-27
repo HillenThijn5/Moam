@@ -4,7 +4,7 @@ from MarketingMail.product_title import generate_product_title, get_underlying_f
 
 
 def _as_pct(value: str) -> str:
-    """Append % to a bare numeric value; leave already-formatted or text values unchanged."""
+    """Voeg % toe aan een losse numerieke waarde; laat al geformatteerde of tekstwaarden ongemoeid."""
     if not value:
         return value
     v = value.strip()
@@ -14,15 +14,15 @@ def _as_pct(value: str) -> str:
         float(v)
         return v + "%"
     except ValueError:
-        return v  # e.g. "n.v.t.", "12m, 13obs" — leave as-is
+        return v  # bijv. "n.v.t.", "12m, 13obs" — laat staan zoals het is
 
 
 def get_labels_and_values(product_dict: dict) -> dict:
     """
-    Returns Excel label text and cell values for a product, applying any
-    product-type overrides from PRODUCT_TYPE_CONFIG.
+    Geeft Excel-labels en celwaarden voor een product terug, met eventuele
+    producttype-overrides uit PRODUCT_TYPE_CONFIG.
 
-    Returns a dict with keys:
+    Geeft een dict terug met de sleutels:
         lbl_param1, lbl_param2, lbl_param3, lbl_param4
         value_param1, value_param2, value_param3, value_param4
     """
@@ -35,13 +35,13 @@ def get_labels_and_values(product_dict: dict) -> dict:
         )
 
     return {
-        # Excel label text (Dutch)
+        # Excel-labeltekst (Nederlands)
         "lbl_param1": config.get("lbl_param1", "Premie:"),
         "lbl_param2": config.get("lbl_param2", "Aflossingsbarriere:"),
         "lbl_param3": config.get("lbl_param3", "Couponbarriere:"),
         "lbl_param4": config.get("lbl_param4", "Bescherming:"),
 
-        # Values — forced config override > user-entered value > config default > empty
+        # Waarden — geforceerde config override > ingevulde waarde > config-standaard > leeg
         "value_param1": _as_pct(product_dict.get("param1", "")),
         "value_param2": config.get("value_param2") or _as_pct(product_dict.get("param2", "")) or config.get("default_param2", ""),
         "value_param3": config.get("value_param3") or _as_pct(product_dict.get("param3", "")),
@@ -51,11 +51,11 @@ def get_labels_and_values(product_dict: dict) -> dict:
 
 def build_cell_updates(data: dict, choice: int) -> dict:
     """
-    Builds a {cell_address: value} dict ready for Excel injection.
+    Bouwt een {cell_address: value}-dict die klaar is voor Excel-injectie.
 
-    Args:
-        data:   dict from load_marketing_data() with 'title', 'intro_text', 'products'
-        choice: 1–4 (how many products to include)
+    Parameters:
+        data:   dict uit load_marketing_data() met 'title', 'intro_text', 'products'
+        choice: 1–4 (hoeveel producten je wilt meenemen)
     """
     if not 1 <= choice <= 4:
         raise ValueError("choice must be between 1 and 4")
@@ -76,7 +76,7 @@ def build_cell_updates(data: dict, choice: int) -> dict:
         product_title = generate_product_title(product)
 
         updates.update({
-            # Title + metadata
+            # Titel + metadata
             block["name"]:       product_title,
             block["issuer"]:     product.get("issuer", ""),
             block["isin_vl"]:    f'{product.get("isin", "")} / {product.get("vl_code", "")} / {product.get("issue_date", "")}',
@@ -85,13 +85,13 @@ def build_cell_updates(data: dict, choice: int) -> dict:
             block["underlying"]: get_underlying_full_name(product.get("underlying", "")),
             block["startwaarde"]: product.get("startwaarde", ""),
 
-            # Excel labels
+            # Excel-labels
             block["lbl_param1"]: lv["lbl_param1"],
             block["lbl_param2"]: lv["lbl_param2"],
             block["lbl_param3"]: lv["lbl_param3"],
             block["lbl_param4"]: lv["lbl_param4"],
 
-            # Excel values
+            # Excel-waarden
             block["param1"]: lv["value_param1"],
             block["param2"]: lv["value_param2"],
             block["param3"]: lv["value_param3"],

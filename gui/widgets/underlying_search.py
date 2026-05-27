@@ -5,8 +5,8 @@ from tkinter import ttk
 
 class UnderlyingSearchEntry(ttk.Frame):
     """
-    Search Entry with filtered Listbox popup.
-    Clears itself after a selection; calls on_select(ticker).
+    Zoekinvoerveld met een gefilterde Listbox-pop-up.
+    Wist zichzelf na een selectie; roept on_select(ticker) aan.
     """
 
     def __init__(self, parent, all_tickers: list, on_select, auto_clear: bool = True, **kw):
@@ -117,8 +117,8 @@ class UnderlyingSearchEntry(ttk.Frame):
         try:
             focused = self.focus_get()
         except KeyError:
-            # Combobox 'popdown' widget can briefly not exist in widget tree;
-            # ignore and leave popup open — next event will close it if needed
+            # De Combobox-'popdown' kan kortstondig ontbreken in de widgethiërarchie;
+            # negeer dat en laat de pop-up open — de volgende gebeurtenis sluit hem zo nodig
             return
         if self._popup and focused not in (self._entry, getattr(self, "_lb", None)):
             self._close_popup()

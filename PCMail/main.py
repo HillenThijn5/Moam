@@ -19,11 +19,11 @@ from statics.outlook_user import get_sender_first_name
 
 def run_pc_mail(product: PCMailProduct) -> None:
     """
-    Main entrypoint called by the GUI when the user sends the PC mail.
-    Receives a fully populated PCMailProduct, renders Word + Excel attachments,
-    and opens the draft Outlook email.
+    Hoofdingang die door de GUI wordt aangeroepen wanneer de gebruiker de PC-mail verstuurt.
+    Ontvangt een volledig ingevulde PCMailProduct, rendert Word- en Excel-bijlagen,
+    en opent de Outlook-conceptmail.
     """
-    # Validate critical fields before starting the workflow
+    # Valideer kritieke velden voordat het proces start
     if not product.series or not product.series.strip():
         raise ValueError("Series number is required")
     if not product.product or not product.product.strip():
@@ -31,7 +31,7 @@ def run_pc_mail(product: PCMailProduct) -> None:
     if not product.underlyings and product.product.strip() not in PRODUCTS_NO_UNDERLYING:
         raise ValueError("At least one underlying is required for this product type")
 
-    # Enrich underlyings with benchmark data from the static Excel sheet
+    # Verrijk onderliggende waarden met benchmarkdata uit het statische Excel-bestand
     benchmark_map = load_benchmark_map()
     for u in product.underlyings:
         bm = benchmark_map.get(u.ticker, {})
@@ -39,20 +39,20 @@ def run_pc_mail(product: PCMailProduct) -> None:
             u.primary_benchmark = bm.get("primary", u.primary_benchmark)
             u.fallback_benchmark = bm.get("fallback", u.fallback_benchmark)
 
-    # Determine ESG classification for the target market document
+    # Bepaal de ESG-classificatie voor het target-market-document
     esg_score = compute_esg_score([u.ticker for u in product.underlyings])
     if product.product.strip().upper() == "FIXED RATE NOTE":
-        esg_score = 3  # Fixed Rate Note is always score 3 (positive target market)
+        esg_score = 3  # Fixed Rate Note heeft altijd score 3 (positieve doelgroep)
     b24_value = build_target_market_b24(esg_score)
     sheet_name = pick_target_market_sheet(product)
 
-    # Build Word template context and render both attachments
+    # Bouw de context voor het Word-sjabloon en render beide bijlagen
     todo_html = build_todo_html(product)
     ctx = build_word_context(product, todo_html)
     word_path = render_word(ctx, product.series)
     excel_path = render_target_market(b24_value=b24_value, series=product.series, sheet_name=sheet_name)
 
-    # Compose and open the draft Outlook email
+    # Stel de Outlook-conceptmail samen en open die
     subject = build_email_subject(product)
     body = build_email_body_html(todo_html=todo_html, sender=get_sender_first_name())
     send_mail(subject=subject, html_body=body, attachments=[word_path, excel_path])

@@ -8,7 +8,7 @@ from openpyxl import load_workbook
 
 
 def _exe_root() -> Path:
-    """Project root: exe's folder when frozen, otherwise MoamProject source root."""
+    """Projectroot: map van de exe als die draait, anders de bronroot van MoamProject."""
     if getattr(sys, "frozen", False):
         return Path(sys.executable).parent
     return Path(__file__).resolve().parents[1]
@@ -16,7 +16,7 @@ def _exe_root() -> Path:
 
 _STATIC_PATH = _exe_root() / "statics" / "static_sheet.xlsx"
 
-# Module-level caches — populated on first call, reused forever after
+# Caches op moduleniveau — gevuld bij de eerste aanroep en daarna hergebruikt
 _benchmark_cache: dict | None = None
 _esg_cache: dict | None = None
 _adviser_cache: dict | None = None
@@ -24,9 +24,9 @@ _adviser_cache: dict | None = None
 
 def load_benchmark_map() -> dict[str, dict[str, str]]:
     """
-    Reads sheet 'Benchmarks' from STATIC_DATA_PATH.
+    Leest tabblad 'Benchmarks' uit STATIC_DATA_PATH.
 
-    Expected headers (row 1):
+    Verwachte headers (rij 1):
       ticker | primary_benchmark | fallback_benchmark
     """
     global _benchmark_cache
@@ -37,7 +37,7 @@ def load_benchmark_map() -> dict[str, dict[str, str]]:
 
     headers = [str(c.value).strip() if c.value is not None else "" for c in ws[1]]
 
-    # find required columns by header name
+    # Zoek vereiste kolommen op headernaam
     def col_idx(name: str) -> int:
         try:
             return headers.index(name)
@@ -62,7 +62,7 @@ def load_benchmark_map() -> dict[str, dict[str, str]]:
         primary = (row[i_primary] if i_primary >= 0 else "") if i_primary >= 0 else ""
         primary = str(primary).strip() if primary is not None else ""
         if not primary:
-            # No benchmark name → skip (e.g. EEM UP is a fund with no benchmark)
+            # Geen benchmarknaam → overslaan (bijv. EEM UP is een fonds zonder benchmark)
             continue
 
         fallback = (row[i_fallback] if i_fallback >= 0 else "") if i_fallback >= 0 else ""
@@ -119,18 +119,22 @@ def load_esg_map() -> dict[str, int]:
 
 def load_adviser_map() -> dict[str, str]:
     """
-    Reads sheet 'Advisers' from static_sheet.xlsx.
+    Leest tabblad 'Advisers' uit static_sheet.xlsx.
 
-    Expected columns (no header row required, but skips blanks):
-      A: adviser name   B: helper (CC) name
+    Verwachte kolommen (geen headerrij vereist, lege regels worden overgeslagen):
+      A: adviseurnaam   B: helpernaam (CC)
+
+    Bouwt ook een voornaamindex, zodat gedeeltelijke namen (bijv. "Bauke")
+    kunnen worden opgelost naar volledige namen (bijv. "Bauke van Sluis") voor CC-opzoeking.
     """
-    global _adviser_cache
+    global _adviser_cache, _adviser_first_name_map
     if _adviser_cache is not None:
         return _adviser_cache
     wb = load_workbook(str(_STATIC_PATH), data_only=True)
     ws = wb["advisers"]
 
     out: dict[str, str] = {}
+    first_map: dict[str, str] = {}
     for row in ws.iter_rows(min_row=2, values_only=True):
         if not row or not row[0]:
             continue
@@ -138,13 +142,38 @@ def load_adviser_map() -> dict[str, str]:
         helper  = str(row[1]).strip() if len(row) > 1 and row[1] else ""
         if adviser:
             out[adviser] = helper
+            first = adviser.split()[0].lower()
+            # Alleen koppelen als het eenduidig is (eerste voorkomen wint)
+            if first not in first_map:
+                first_map[first] = adviser
 
     wb.close()
     _adviser_cache = out
+    _adviser_first_name_map = first_map
     return out
 
 
-# ── helpers ──────────────────────────────────────────────────────────────────
+_adviser_first_name_map: dict[str, str] = {}
+
+
+def resolve_adviser_name(name: str) -> str:
+    """Los een gedeeltelijke adviseurnaam (bijv. 'Bauke') op naar de volledige naam.
+
+    Geeft de oorspronkelijke naam terug als er geen match is.
+    """
+    name = name.strip()
+    if not name:
+        return name
+    # Al een volledige match
+    adviser_map = load_adviser_map()
+    if name in adviser_map:
+        return name
+    # Probeer opzoeken op voornaam
+    full = _adviser_first_name_map.get(name.split()[0].lower())
+    return full if full else name
+
+
+# ── hulpfuncties ─────────────────────────────────────────────────────────────
 
 def _col(headers: list[str], name: str) -> int:
     try:
@@ -162,24 +191,24 @@ def _or_none(val) -> str | None:
     return s if s else None
 
 
-# ── Underlyings ───────────────────────────────────────────────────────────────
+# ── Onderliggende waarden ─────────────────────────────────────────────────────
 
 _underlyings_cache: dict | None = None
 
 
 def load_underlyings() -> dict:
     """
-    Reads sheet 'Benchmarks' for underlying metadata.
-    Uses columns: BENCHMARK ID (ticker) | FULL_NAME | ALIAS
+    Leest tabblad 'Benchmarks' voor metadata van onderliggende waarden.
+    Gebruikt kolommen: BENCHMARK ID (ticker) | FULL_NAME | ALIAS
 
-    All rows with a BENCHMARK ID are treated as valid underlyings,
-    regardless of whether they have a benchmark (e.g. EEM UP is a fund
-    with no BENCHMARK NAME but is still a valid underlying).
+    Alle rijen met een BENCHMARK ID worden als geldige onderliggende waarden behandeld,
+    ongeacht of ze een benchmark hebben (bijv. EEM UP is een fonds
+    zonder BENCHMARK NAME, maar wel een geldige onderliggende waarde).
 
-    Returns {
-        'list':       [ticker, ...],          # ordered; drives GUI dropdowns
-        'full_names': {ticker: full_name},    # marketing mail Excel display
-        'aliases':    {ticker: alias},        # subject / title short names
+    Geeft terug {
+        'list':       [ticker, ...],          # geordend; stuurt GUI-dropdowns aan
+        'full_names': {ticker: full_name},    # weergave in marketingmail-Excel
+        'aliases':    {ticker: alias},        # korte namen voor onderwerp / titel
     }
     """
     global _underlyings_cache
@@ -194,10 +223,11 @@ def load_underlyings() -> dict:
         _underlyings_cache = {"list": [], "full_names": {}, "aliases": {}}
         return _underlyings_cache
 
-    headers = [_str(c.value).upper() for c in ws[1]]
-    i_tick  = _col(headers, "BENCHMARK ID")
-    i_full  = _col(headers, "FULL_NAME")
-    i_alias = _col(headers, "ALIAS")
+    headers  = [_str(c.value).upper() for c in ws[1]]
+    i_tick   = _col(headers, "BENCHMARK ID")
+    i_bname  = _col(headers, "BENCHMARK NAME")
+    i_full   = _col(headers, "FULL_NAME")
+    i_alias  = _col(headers, "ALIAS")
 
     tickers, full_names, aliases = [], {}, {}
 
@@ -208,8 +238,12 @@ def load_underlyings() -> dict:
         if not ticker:
             continue
         tickers.append(ticker)
-        if i_full >= 0 and row[i_full]:
-            full_names[ticker] = _str(row[i_full])
+        # FULL_NAME krijgt voorrang; val voor gewone indices terug op BENCHMARK NAME
+        explicit = _str(row[i_full]) if i_full >= 0 else ""
+        fallback = _str(row[i_bname]) if i_bname >= 0 else ""
+        display  = explicit or fallback
+        if display:
+            full_names[ticker] = display
         if i_alias >= 0 and row[i_alias]:
             aliases[ticker] = _str(row[i_alias])
 
@@ -218,25 +252,25 @@ def load_underlyings() -> dict:
     return _underlyings_cache
 
 
-# ── Product URLs ──────────────────────────────────────────────────────────────
+# ── Product-URL's ─────────────────────────────────────────────────────────────
 
 _product_urls_cache: dict | None = None
 
 
 def load_product_urls() -> dict:
     """
-    Reads sheet 'ProductURLs'.
-    Headers (row 1):
+    Leest tabblad 'ProductURLs'.
+    Headers (rij 1):
       PRODUCT_TYPE | BROCHURE_LABEL | BROCHURE_URL | VIDEO_URL
                    | VIDEO_LABEL_MARKETING | VIDEO_LABEL_PC
 
-    Returns {
+    Geeft terug {
         product_type: {
             'brochure_label':       str,
             'brochure_url':         str,
             'video_url':            str | None,
-            'video_label':          str | None,   # marketing (Dutch)
-            'video_label_pc':       str | None,   # PC mail (English)
+            'video_label':          str | None,   # marketing (Nederlands)
+            'video_label_pc':       str | None,   # PC-mail (Engels)
         }, ...
     }
     """
@@ -280,16 +314,16 @@ def load_product_urls() -> dict:
     return out
 
 
-# ── PARP dates ────────────────────────────────────────────────────────────────
+# ── PARP-datums ───────────────────────────────────────────────────────────────
 
 _parp_cache: dict | None = None
 
 
 def load_parp_dates() -> dict[str, str]:
     """
-    Reads sheet 'PARP'.  Headers (row 1): PRODUCT_TYPE | PARP_DATE
-    Store dates as plain text, e.g. '24 September 2025'.
-    Returns {product_type: date_string}.
+    Leest tabblad 'PARP'. Headers (rij 1): PRODUCT_TYPE | PARP_DATE
+    Bewaart datums als platte tekst, bijv. '24 September 2025'.
+    Geeft terug {product_type: date_string}.
     """
     global _parp_cache
     if _parp_cache is not None:
@@ -318,7 +352,7 @@ def load_parp_dates() -> dict[str, str]:
         if val is not None:
             from datetime import date as _date, datetime as _dt
             if isinstance(val, (_date, _dt)):
-                # Format as "24 September 2025" (no leading zero)
+                # Formatteer als "24 September 2025" (zonder voorloopnul)
                 out[pt] = val.strftime("%d %B %Y").lstrip("0")
             else:
                 out[pt] = _str(val)
@@ -328,15 +362,15 @@ def load_parp_dates() -> dict[str, str]:
     return out
 
 
-# ── Prospectus URLs ───────────────────────────────────────────────────────────
+# ── Prospectus-URL's ──────────────────────────────────────────────────────────
 
 _prospectus_cache: dict | None = None
 
 
 def load_prospectus_urls() -> dict[str, tuple[str, str]]:
     """
-    Reads sheet 'ProspectusURLs'.  Headers (row 1): CODE | LABEL | URL
-    Returns {code: (label, url)}.
+    Leest tabblad 'ProspectusURLs'. Headers (rij 1): CODE | LABEL | URL
+    Geeft terug {code: (label, url)}.
     """
     global _prospectus_cache
     if _prospectus_cache is not None:

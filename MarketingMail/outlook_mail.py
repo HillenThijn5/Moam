@@ -30,14 +30,14 @@ class OutlookMailer:
         if CC_LIST:
             mail.CC = CC_LIST
 
-        # attach image + set CID
+        # afbeelding koppelen + CID zetten
         att = mail.Attachments.Add(image_path)
         cid = "rangeimg"
         pa = att.PropertyAccessor
         pa.SetProperty(PR_ATTACH_CONTENT_ID, cid)
         pa.SetProperty(PR_ATTACH_CONTENT_LOCATION, cid)
 
-        # HTML body (image inline + tekst eronder)
+        # HTML-inhoud (afbeelding inline + tekst eronder)
         safe_text = html.escape(body_text).replace("\r\n", "<br>")
         mail.HTMLBody = f"""
         <html>

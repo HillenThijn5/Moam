@@ -5,14 +5,14 @@ from PCMail.config.paths import WORD_TEMPLATE_PATH, TEMP_DIR
 
 
 BROCHURE_FONT = "Proxima Nova A Cond"
-BROCHURE_SIZE = 16  # docx half-points; 16 == 8pt
+BROCHURE_SIZE = 16  # docx halve punten; 16 == 8pt
 
 
 def _apply_hyperlinks(doc: DocxTemplate, ctx: dict) -> dict:
     """
-    Convert tuple values into clickable hyperlinks.
+    Zet tuple-waarden om in klikbare hyperlinks.
 
-    Supported tuple formats:
+    Ondersteunde tuple-formaten:
     - (text, url)
     - (text, url, trailing_text)
     """
@@ -32,8 +32,8 @@ def _apply_hyperlinks(doc: DocxTemplate, ctx: dict) -> dict:
             rt.add(
                 str(text),
                 url_id=doc.build_url_id(str(url)),
-                color="0000FF",  # blue
-                underline=True,  # underline
+                color="0000FF",  # blauw
+                underline=True,  # onderstreept
                 font=BROCHURE_FONT if use_brochure_style else None,
                 size=BROCHURE_SIZE if use_brochure_style else None,
             )
@@ -55,7 +55,7 @@ def render_word(ctx: dict, series: str) -> str:
     doc = DocxTemplate(str(WORD_TEMPLATE_PATH))
 
     ctx = _apply_hyperlinks(doc, ctx)
-    # docxtpl doesn't XML-escape plain strings; pre-escape so & < > survive in the .docx
+    # docxtpl escapet platte strings niet als XML; escape daarom vooraf zodat & < > in de .docx behouden blijven
     ctx = {k: xml_escape(v) if isinstance(v, str) else v for k, v in ctx.items()}
 
     doc.render(ctx)

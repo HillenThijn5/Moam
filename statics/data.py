@@ -1,7 +1,7 @@
 # statics/data.py
 """
-Centralized static data for all mail generators.
-This is the single source of truth for all dropdown values, URLs, and constants.
+Gecentraliseerde statische data voor alle mailgeneratoren.
+Dit is de enige bron voor alle dropdownwaarden, URL's en constanten.
 """
 import sys
 from pathlib import Path
@@ -11,29 +11,29 @@ from statics.loader import (
 
 
 def _exe_root() -> Path:
-    """Project root: exe's folder when frozen, otherwise MoamProject source root."""
+    """Projectroot: map van de exe als die draait, anders de bronroot van MoamProject."""
     if getattr(sys, "frozen", False):
         return Path(sys.executable).parent
     return Path(__file__).resolve().parents[1]
 
 
 # ============================================================================
-# PATHS
+# PADEN
 # ============================================================================
 
-# Local project copy — used for reading; kept in sync by the refresh logic
+# Lokale projectkopie  gebruikt voor lezen; synchroon gehouden door de refreshlogica
 SHAREPOINT_SUMMARY_PATH = str(
     _exe_root() / "sharepoint" / "sharepointsummary.xlsx"
 )
 
-# OneDrive-synced source (auto-updated from SharePoint).
-# Refresh copies this → SHAREPOINT_SUMMARY_PATH when it exists.
+# Met OneDrive gesynchroniseerde bron (automatisch bijgewerkt vanuit SharePoint).
+# Refresh kopieert dit → SHAREPOINT_SUMMARY_PATH wanneer het bestaat.
 SHAREPOINT_ONEDRIVE_PATH = str(
     Path.home() / "OneDrive - Van Lanschot Kempen" / "sharepointsummary.xlsx"
 )
 
 # ============================================================================
-# PRODUCT & BUSINESS DATA
+# PRODUCT- EN BEDRIJFSDATA
 # ============================================================================
 
 PRODUCT_TYPES = {
@@ -73,8 +73,8 @@ PRODUCTS_NO_UNDERLYING = {"Fixed Rate Note"}
 
 
 PRODUCT_PAYOFF_FIELDS = {
-    #  key → (field_key, label)  — order matters for display
-    #  param1–param4 are generic slots; each product type assigns its own label
+    #  key → (field_key, label) — volgorde is belangrijk voor de weergave
+    #  param1–param4 zijn generieke velden; elk producttype geeft ze een eigen label
     "Trigger Plus Note": [
         ("param1", "Coupon (%)"),
         ("param2", "Aflossing (%)"),
@@ -94,7 +94,7 @@ PRODUCT_PAYOFF_FIELDS = {
         ("param1", "Protection (%)"),
         ("param2", "Participation (%)"),
         ("param3", "Cap (%)"),
-        # Asianing (tail + obs) handled by button in the GUI
+        # Asianing (tail + obs) wordt afgehandeld door een knop in de GUI
     ],
     "Fixed Rate Note": [
         ("param1", "Premie (%)"),
@@ -102,7 +102,7 @@ PRODUCT_PAYOFF_FIELDS = {
 }
 
 # ============================================================================
-# SHARED DROPDOWNS
+# GEDEELDE DROPDOWNS
 # ============================================================================
 
 MATURITIES = ["1Y", "2Y", "3Y", "4Y", "5Y", "6Y", "7Y"]
@@ -119,10 +119,10 @@ ISSUERS = [
     "Société Générale",
 ]
 
-CLIENTS = ["VL NL", "VL Belgium", "VL Switzerland", "ING Bank", "Alpha Capital"]
+CLIENTS = ["VL NL", "VL Belgium", "VL Switzerland", "ING Bank", "Alpha Capital Asset Management B.V.", "OAKK Capital (CFS)"]
 
 # ============================================================================
-# DOCUMENTATIE MAIL SPECIFIC
+# SPECIFIEK VOOR DOCUMENTATIE-MAIL
 # ============================================================================
 _ud = load_underlyings()
 UNDERLYINGS      = _ud["list"]
@@ -138,7 +138,7 @@ DOCUMENTATIE_MAIL_RECIPIENTS = {
 }
 
 # ============================================================================
-# MARKETING MAIL SPECIFIC
+# SPECIFIEK VOOR MARKETINGMAIL
 # ============================================================================
 
 MARKETING_PRODUCT_TYPES = [
@@ -148,7 +148,7 @@ MARKETING_PRODUCT_TYPES = [
     "INDEX_GARANTIE_CAPPED",
 ]
 
-# Human-readable names for marketing product types (used in titles and Excel)
+# Leesbare namen voor marketingproducttypes (gebruikt in titels en Excel)
 MARKETING_PRODUCT_TYPE_NAMES = {
     "TRIGGER":               "Trigger Plus Note",
     "INDEX_GARANTIE":        "Index Garantie Note",
@@ -156,10 +156,10 @@ MARKETING_PRODUCT_TYPE_NAMES = {
     "MEMORY_COUPON":         "Memory Coupon Note",
 }
 
-# GUI parameter rows for Marketing Mail tab (drives dynamic form).
-# param1–param4 are generic slots; labels below clarify the meaning per product type.
-# param1 = coupon/premie/protection, param2 = trigger/participation,
-# param3 = coupon barrier/cap, param4 = protection/redemption barrier
+# GUI-parameterregels voor het tabblad Marketing Mail (stuurt het dynamische formulier aan).
+# param1–param4 zijn generieke velden; de labels hieronder verduidelijken de betekenis per producttype.
+# param1 = coupon/premie/bescherming, param2 = trigger/participatie,
+# param3 = couponbarrière/cap, param4 = bescherming/aflossingsbarrière
 MARKETING_PARAMETER_CONFIG = {
     "TRIGGER": {
         "param1": {"label": "Premie %",              "required": True},
@@ -211,7 +211,7 @@ MARKETING_MAIL_SIGNATURE = "Van Lanschot Kempen Structured Products"
 
 
 # ============================================================================
-# INCREASE / DECREASE MAIL
+# INCREASE / DECREASE-MAIL
 # ============================================================================
 
 ID_MAIL_DB_CONN_STR = (
@@ -238,19 +238,19 @@ ID_MAIL_CC = (
 
 
 # ============================================================================
-# API ENDPOINTS & EXTERNAL URLS
+# API-ENDPOINTS EN EXTERNE URL'S
 # ============================================================================
 
 PRIIP_HUB_URL = "https://api.priiphub.com/hub/priip/document"
 
 # ============================================================================
-# EMAIL RECIPIENTS
+# E-MAILONTVANGERS
 # ============================================================================
 
-# Shared CC used by Marketing Mail and PC Mail
+# Gedeelde CC gebruikt door Marketing Mail en PC Mail
 STRUCTURED_INVESTMENTS_EMAIL = "structuredinvestments@vanlanschotkempen.com"
 
-# Marketing Mail — TO list (all advisers/distribution)
+# Marketing Mail — TO-lijst (alle adviseurs/distributie)
 MARKETING_MAIL_TO_LIST = [
     "f.b.vaniersel@vanlanschotkempen.com",
     "M.A.J.vandenBroek@vanlanschotkempen.com",
@@ -299,7 +299,7 @@ MARKETING_MAIL_TO_LIST = [
     "e.lamberty@vanlanschotkempen.com",
 ]
 
-# PC Mail — TO list (internal ops/risk/settlement teams; semicolon-separated for Outlook)
+# PC Mail — TO-lijst (interne ops-/risk-/settlementteams; gescheiden met puntkomma's voor Outlook)
 PC_MAIL_TO_RECIPIENTS = (
     "sas@vanlanschotkempen.com; reconos@vanlanschotkempen.com; riskmanagement@vanlanschotkempen.com; "
     "i.sucur@vanlanschotkempen.com; e.lamberty@vanlanschotkempen.com; m.bloem@vanlanschotkempen.com; "
@@ -307,14 +307,14 @@ PC_MAIL_TO_RECIPIENTS = (
 )
 
 # ============================================================================
-# UNDERLYING NAMES & ALIASES
+# UNDERLYINGNAMEN EN ALIASES
 # ============================================================================
 
 UNDERLYING_FULL_NAMES = _ud["full_names"]
 UNDERLYING_ALIASES    = _ud["aliases"]
 
 # ============================================================================
-# PC MAIL DOCUMENT LINKS  (built from ProductURLs sheet in static_sheet.xlsx)
+# PC MAIL-DOCUMENTLINKS (opgebouwd uit tabblad ProductURLs in static_sheet.xlsx)
 # ============================================================================
 _pu = load_product_urls()
 

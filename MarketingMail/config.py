@@ -11,7 +11,7 @@ from statics.data import (
 
 
 def _exe_root() -> Path:
-    """Project root: exe's folder when frozen, otherwise MoamProject source root."""
+    """Projectmap: de map van de exe bij een gebundelde build, anders de bronmap van MoamProject."""
     if getattr(sys, "frozen", False):
         return Path(sys.executable).parent
     return Path(__file__).resolve().parents[1]
@@ -20,9 +20,9 @@ def _exe_root() -> Path:
 EXCEL_PATH = _exe_root() / "MarketingMail" / "templates" / "excel(marketingmail).xlsx"
 
 
-# ====== EXCEL CELL MAPPING ======
-# Maps logical field names to Excel cell addresses for each of the 4 product blocks.
-# param1–param4 match the generic parameter slots used throughout the codebase.
+# ====== EXCEL-CELMAPPING ======
+# Koppelt logische veldnamen aan Excel-celadressen voor elk van de 4 productblokken.
+# param1–param4 komen overeen met de generieke parameterslots die overal in de codebase gebruikt worden.
 PRODUCT_BLOCKS = [
     {
         "name": "B20",
@@ -94,30 +94,30 @@ PRODUCT_BLOCKS = [
     },
 ]
 
-# ====== PRODUCT TYPE LABELS & VALUE OVERRIDES ======
-# Maps product_type → Dutch Excel label per param slot, plus optional forced values.
-# value_param* overrides the value read from the product dict (use for fixed/n.v.t. cells).
+# ====== PRODUCTTYPE-LABELS & WAARDE-OVERRIDES ======
+# Koppelt product_type aan het Nederlandse Excel-label per paramslot, plus optionele vaste waarden.
+# value_param* overschrijft de waarde uit de product-dict (handig voor vaste/n.v.t.-cellen).
 PRODUCT_TYPE_CONFIG = {
     "TRIGGER": {
         "lbl_param1": "Premie:",
         "lbl_param2": "Aflossingsbarriere:",
         "lbl_param3": "Couponbarriere:",
         "lbl_param4": "Bescherming:",
-        "default_param2": "100%",   # Aflossingsbarriere defaults to 100% for Trigger products
+        "default_param2": "100%",   # Aflossingsbarriere staat standaard op 100% voor Trigger-producten
     },
     "MEMORY_COUPON": {
         "lbl_param1": "Premie:",
         "lbl_param2": "Aflossingsbarriere:",
         "lbl_param3": "Couponbarriere:",
         "lbl_param4": "Bescherming:",
-        "value_param2": "n.v.t.",   # Memory Coupon has no aflossingsbarriere
+        "value_param2": "n.v.t.",   # Memory Coupon heeft geen aflossingsbarriere
     },
     "INDEX_GARANTIE": {
         "lbl_param1": "Protection:",
         "lbl_param2": "Participatiegraad:",
         "lbl_param3": "Max redemp:",
         "lbl_param4": "Middeling:",
-        "value_param3": "n.v.t.",   # No cap for non-capped version
+        "value_param3": "n.v.t.",   # Geen cap voor de variant zonder cap
     },
     "INDEX_GARANTIE_CAPPED": {
         "lbl_param1": "Protection:",
@@ -133,24 +133,24 @@ PRODUCT_TYPE_CONFIG = {
     },
 }
 
-# ====== STATIC TEXT TEMPLATES ======
+# ====== STATISCHE TEKSTSJABLONEN ======
 TITLE_CELL = "B9"
 INTRO_CELL = "B13"
 
-# ====== OUTLOOK INLINE IMAGE ======
+# ====== OUTLOOK INLINE-AFBEELDING ======
 PR_ATTACH_CONTENT_ID = "http://schemas.microsoft.com/mapi/proptag/0x3712001F"
 PR_ATTACH_CONTENT_LOCATION = "http://schemas.microsoft.com/mapi/proptag/0x3713001F"
 
 
 def get_intro_text(denominations: list) -> str:
     """
-    Dynamic intro text that includes all denominations.
+    Dynamische introtekst met alle denominaties.
 
-    Args:
-        denominations: List of denomination strings (e.g., ['EUR 100,000', 'USD 150,000'])
+    Parameters:
+        denominations: Lijst met denominatiestrings (bijv. ['EUR 100,000', 'USD 150,000'])
 
-    Returns:
-        Full intro text with denominations joined by /
+    Geeft terug:
+        Volledige introtekst met denominaties samengevoegd met /
     """
     denom_str = " / ".join(denominations)
     return (

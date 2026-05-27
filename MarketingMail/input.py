@@ -1,17 +1,17 @@
 # MarketingMail/input.py
 """
-Single source of input data for marketing mail generation.
-Modify this file to change what gets sent.
+Enige bron voor invoerdata van de marketingmail.
+Pas dit bestand aan om te wijzigen wat er verstuurd wordt.
 """
 
 from MarketingMail.models import MarketingProduct
 from MarketingMail.mail_service import create_and_send_marketing_mail
 
-# ===== YOUR INPUT DATA =====
+# ===== JOUW INVOERDATA =====
 TITLE = "Nieuwe Maatwerk Notes"
 
 PRODUCTS = [
-    # TRIGGER products
+    # TRIGGER-producten
     MarketingProduct(
         product_type="TRIGGER",
         currency="EUR",
@@ -31,7 +31,7 @@ PRODUCTS = [
         redemption_barrier="70%",
     ),
 
-    # MEMORY COUPON products (participation value auto-set to n.v.t.)
+    # MEMORY COUPON-producten (participation wordt automatisch op n.v.t. gezet)
     MarketingProduct(
         product_type="MEMORY_COUPON",
         currency="EUR",
@@ -49,7 +49,7 @@ PRODUCTS = [
         redemption_barrier="70%",
     ),
 
-    # INDEX GARANTIE products (barrier_cap auto-set to n.v.t., uses asianing)
+    # INDEX GARANTIE-producten (barrier_cap wordt automatisch n.v.t., gebruikt asianing)
     MarketingProduct(
         product_type="INDEX_GARANTIE",
         currency="EUR",
@@ -67,7 +67,7 @@ PRODUCTS = [
         participation="100%",
     ),
 
-    # INDEX GARANTIE CAPPED (barrier_cap has a value, uses asianing)
+    # INDEX GARANTIE CAPPED (barrier_cap heeft een waarde, gebruikt asianing)
     MarketingProduct(
         product_type="INDEX_GARANTIE_CAPPED",
         currency="EUR",
@@ -81,7 +81,7 @@ PRODUCTS = [
 ]
 
 if __name__ == "__main__":
-    # Generate and send mail with first 2 products
+    # Maak en verstuur een mail met de eerste 2 producten
     mail = create_and_send_marketing_mail(
         title=TITLE,
         products=PRODUCTS,

@@ -2,7 +2,7 @@
 from datetime import datetime
 from statics.data import UNDERLYING_FULL_NAMES, UNDERLYING_ALIASES, MARKETING_PRODUCT_TYPE_NAMES
 
-# Maps full issuer string (as stored in the model) → short code for product titles
+# Koppelt de volledige issuer-string (zoals in het model opgeslagen) aan een korte code voor producttitels
 _ISSUER_SHORT: dict[str, str] = {
     "Van Lanschot Kempen N.V.": "VLK",
     "BNP Paribas Issuance B.V.": "BNP",
@@ -10,16 +10,16 @@ _ISSUER_SHORT: dict[str, str] = {
     "SG Issuer": "SG",
 }
 
-# Backward-compatible alias used by other modules
+# Alias voor oudere code die andere modules gebruiken
 PRODUCT_TYPE_NAMES = MARKETING_PRODUCT_TYPE_NAMES
 
 
 def _shorten_issuer(issuer: str) -> str:
-    """Return the short code for a full issuer string, e.g. 'VLK', 'BNP', 'UBS', 'SG'."""
+    """Geef de korte code terug voor een volledige issuer-string, bijv. 'VLK', 'BNP', 'UBS', 'SG'."""
     for full, short in _ISSUER_SHORT.items():
         if issuer.startswith(full):
             return short
-    return issuer  # fallback: use as-is
+    return issuer  # terugvaloptie: gebruik zoals hij is
 
 
 
@@ -60,20 +60,20 @@ def extract_year_short(date_str: str) -> str:
 
 
 def maturity_to_years(maturity: str) -> int:
-    """'5 jaar' or '5Y' → 5"""
-    token = maturity.split()[0]       # '5' from '5 jaar', '5Y' from '5Y'
+    """'5 jaar' of '5Y' → 5"""
+    token = maturity.split()[0]       # '5' uit '5 jaar', '5Y' uit '5Y'
     return int(token.rstrip("Yy"))
 
 
 def get_maturity_years_range(issue_date: str, maturity: str) -> str:
     """
-    Generate maturity range like '26-31'.
+    Maak een looptijdrange zoals '26-31'.
 
-    Args:
-        issue_date: e.g. '17 Apr 2026'
-        maturity: e.g. '5 jaar'
+    Parameters:
+        issue_date: bijv. '17 Apr 2026'
+        maturity: bijv. '5 jaar'
 
-    Returns:
+    Geeft terug:
         '26-31'
     """
     start_year = extract_year_short(issue_date)
@@ -84,17 +84,23 @@ def get_maturity_years_range(issue_date: str, maturity: str) -> str:
 
 def generate_product_title(product: dict) -> str:
     """
-    Generate product title with ALIAS (not full name) and maturity.
-    'VLK Trigger Plus Note Eurozone 26-31 USD' (uses alias, not full name)
+    Maak een producttitel met ALIAS (niet de volledige naam) en looptijd.
+    'VLK Trigger Plus Note Eurozone 26-31 USD' (gebruikt alias, niet de volledige naam)
     """
     issuer = _shorten_issuer(product.get("issuer", ""))
 
-    product_type = PRODUCT_TYPE_NAMES.get(
-        product.get("product_type"),
-        product.get("product_type", "").title()
-    )
+    product_type_key = product.get("product_type", "")
+    # Als de coupon barrier 100% is voor een Trigger Plus Note, gebruik dan "Trigger Note"
+    barrier = product.get("param3", "").replace("%", "").strip()
+    if product_type_key == "TRIGGER" and barrier == "100":
+        product_type = "Trigger Note"
+    else:
+        product_type = PRODUCT_TYPE_NAMES.get(
+            product_type_key,
+            product_type_key.title()
+        )
 
-    # Use ALIAS for product title, not full name
+    # Gebruik ALIAS voor de producttitel, niet de volledige naam
     underlying_alias = get_underlying_alias(product.get("underlying", ""))
 
     maturity_range = get_maturity_years_range(
@@ -102,7 +108,7 @@ def generate_product_title(product: dict) -> str:
         product.get("maturity", "5 jaar")
     )
 
-    # Add USD suffix if applicable
+    # Voeg een USD-suffix toe als dat van toepassing is
     currency_suffix = f" {product.get('currency')}" if product.get("currency") == "USD" else ""
 
     return f"{issuer} {product_type} {underlying_alias} {maturity_range}{currency_suffix}"

@@ -5,7 +5,7 @@ from gui.widgets.underlying_search import UnderlyingSearchEntry
 
 
 class DynamicListManager:
-    """Manages add/remove items with optional dropdown or search-entry selection"""
+    """Beheert het toevoegen en verwijderen van items met optionele keuzelijst- of zoekselectie."""
 
     def __init__(self, parent, label_text: str, columns: Tuple[str, ...] = ("Item",),
                  dropdown_options: Dict[str, List[str]] = None,
@@ -13,13 +13,13 @@ class DynamicListManager:
                  defaults: Dict[str, str] = None):
         """
         Args:
-            parent: parent widget
-            label_text: label for the list
-            columns: tuple of column names
-            dropdown_options: col → list of options, rendered as readonly Combobox
-            search_options:   col → list of options, rendered as UnderlyingSearchEntry
-                              (type + Enter for best match, same as underlying picker)
-            defaults: col → default value used when field is left blank
+            parent: bovenliggende widget
+            label_text: label voor de lijst
+            columns: tuple van kolomnamen
+            dropdown_options: kolom → lijst van opties, weergegeven als readonly Combobox
+            search_options:   kolom → lijst van opties, weergegeven als UnderlyingSearchEntry
+                              (typen + Enter voor de beste match, hetzelfde als bij de underlying-picker)
+            defaults: kolom → standaardwaarde die gebruikt wordt als een veld leeg blijft
         """
         self.frame = ttk.LabelFrame(parent, text=label_text)
         self.columns = columns
@@ -28,7 +28,7 @@ class DynamicListManager:
         self.defaults = defaults or {}
         self.items: List[Dict[str, str]] = []
 
-        # Input row
+        # Input rij
         input_frame = ttk.Frame(self.frame)
         input_frame.pack(fill="x", padx=5, pady=5)
 
@@ -37,15 +37,15 @@ class DynamicListManager:
             ttk.Label(input_frame, text=f"{col}:").pack(side="left", padx=2)
 
             if col in self.search_options:
-                # Search entry: auto_clear=False keeps the selected value in the field
+                # Zoekinvoerveld: auto_clear=False behoudt de geselecteerde waarde in het veld
                 search_entry = UnderlyingSearchEntry(
                     input_frame,
                     all_tickers=self.search_options[col],
-                    on_select=lambda _: None,   # var is shared — no extra callback needed
+                    on_select=lambda _: None,   # var is gedeeld — geen extra callback nodig
                     auto_clear=False,
                 )
                 search_entry.pack(side="left", padx=2)
-                # Share the search widget's StringVar so _add_item reads from it directly
+                # Deel de StringVar van de zoekwidget zodat _add_item er direct van leest
                 self.inputs[col] = search_entry._var
 
             elif col in self.dropdown_options:
@@ -66,7 +66,7 @@ class DynamicListManager:
 
         ttk.Button(input_frame, text="+ Add", command=self._add_item).pack(side="left", padx=5)
 
-        # Listbox with scrollbar
+        # Listbox met scrollbar
         list_frame = ttk.Frame(self.frame)
         list_frame.pack(fill="both", expand=True, padx=5, pady=5)
 
@@ -80,20 +80,20 @@ class DynamicListManager:
         ttk.Button(self.frame, text="- Delete Selected", command=self._delete_item).pack(padx=5, pady=5)
 
     def _add_item(self):
-        """Add item to list. Blank fields fall back to their default value."""
+        """Voeg een item toe aan de lijst. Lege velden vallen terug op hun standaardwaarde."""
         values = {}
         for col in self.columns:
             raw = self.inputs[col].get().strip()
-            # Use default if blank and a default exists, otherwise keep raw
+            # Gebruik de standaardwaarde als het veld leeg is en er een bestaat, anders behoud de invoer
             values[col] = raw or self.defaults.get(col, raw)
 
-        # Only require non-empty for columns that have no default
+        # Vereis alleen een niet-lege waarde voor kolommen zonder standaardwaarde
         required_cols = [c for c in self.columns if c not in self.defaults]
         if all(values[c] for c in required_cols):
             self.items.append(values)
             display_text = " | ".join(values[c] for c in self.columns)
             self.listbox.insert("end", display_text)
-            # Reset inputs: restore defaults for defaulted columns, clear others
+            # Reset invoervelden: herstel standaardwaarden voor die kolommen, wis de rest
             for col, var in self.inputs.items():
                 var.set(self.defaults.get(col, ""))
         else:
@@ -101,7 +101,7 @@ class DynamicListManager:
             messagebox.showwarning("Incomplete", f"Please fill in: {', '.join(missing)}")
 
     def _delete_item(self):
-        """Delete selected item"""
+        """Verwijder geselecteerd item"""
         selection = self.listbox.curselection()
         if selection:
             idx = selection[0]
@@ -109,22 +109,22 @@ class DynamicListManager:
             del self.items[idx]
 
     def add_item(self, values: Dict[str, str]):
-        """Programmatically add an item without going through the input widgets."""
+        """Voeg programmatisch een item toe zonder via de invoerwidgets te gaan."""
         row = {col: values.get(col, self.defaults.get(col, "")) for col in self.columns}
         self.items.append(row)
         display_text = " | ".join(row[c] for c in self.columns)
         self.listbox.insert("end", display_text)
 
     def get_items(self) -> List[Dict[str, str]]:
-        """Return list of items"""
+        """Geef lijst van items terug"""
         return self.items
 
     def clear(self):
-        """Clear stored items and UI listbox."""
+        """Wis de opgeslagen items en het UI-lijstvak."""
         self.items.clear()
         self.listbox.delete(0, "end")
         for col, var in self.inputs.items():
-            var.set(self.defaults.get(col, ""))   # restore defaults on clear
+            var.set(self.defaults.get(col, ""))   # herstel standaardwaarden bij wissen
 
     def pack(self, *args, **kwargs):
         self.frame.pack(*args, **kwargs)

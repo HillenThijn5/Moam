@@ -43,38 +43,38 @@ class DateOverrideWidget:
                 child.config(state=state)
 
     def set_default(self, value: str):
-        """Set default (used when override is off) and update displayed value if override not enabled."""
+        """Stel de standaardwaarde in en werk de getoonde waarde bij als de handmatige instelling uit staat."""
         self._default_value = value
         if not self.enable_var.get():
             self.date_var.set(value)
 
     def reset(self):
-        """Disable override and reset to default."""
+        """Schakel de handmatige instelling uit en zet terug naar de standaardwaarde."""
         self.enable_var.set(False)
         self.date_var.set(self._default_value)
         self._update_state()
 
     def get_value(self) -> str:
-        """Return override date if enabled, else default (optional) or empty."""
+        """Geef de handmatig ingestelde datum terug als die actief is, anders de standaardwaarde (optioneel) of leeg."""
         if self.enable_var.get():
             return self.date_var.get()
         return self._default_value if self._return_default_when_disabled else ""
 
     def pack(self, *args, **kwargs):
         self.frame.pack(*args, **kwargs)
-    """Optional date override with checkbox, with default fallback."""
+    """Optionele handmatige datuminstelling met selectievakje en standaardterugval."""
 
 
 
 # ============================================================================
-# HELPER: Denomination Override Widget
+# HULPFUNCTIE: DenominationOverrideWidget
 # ============================================================================
 # ============================================================================
-# HELPER: Denomination Override Widget
+# HULPFUNCTIE: DenominationOverrideWidget
 # ============================================================================
 
 class DenominationOverrideWidget:
-    """Optional denomination override with checkbox, with default fallback."""
+    """Optionele handmatige denominatie-instelling met selectievakje en standaardterugval."""
 
     def __init__(
         self,
@@ -110,19 +110,19 @@ class DenominationOverrideWidget:
                 child.config(state=state)
 
     def set_default(self, value: str):
-        """Set default and update displayed value if override not enabled."""
+        """Stel de standaardwaarde in en werk de getoonde waarde bij als de handmatige instelling niet actief is."""
         self._default_value = value
         if not self.enable_var.get():
             self.value_var.set(value)
 
     def reset(self):
-        """Disable override and reset to default."""
+        """Schakel de handmatige instelling uit en zet terug naar de standaardwaarde."""
         self.enable_var.set(False)
         self.value_var.set(self._default_value)
         self._update_state()
 
     def get_value(self) -> str:
-        """Return override value if enabled, else default (optional) or empty."""
+        """Geef de handmatig ingestelde waarde terug als die actief is, anders de standaardwaarde (optioneel) of leeg."""
         if self.enable_var.get():
             return self.value_var.get()
         return self._default_value if self._return_default_when_disabled else ""

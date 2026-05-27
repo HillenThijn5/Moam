@@ -1,11 +1,11 @@
 """
-Word template context builder.
+Contextbouwer voor het Word-sjabloon.
 
-Orchestrates all field builders into a single dict that is passed
-to the Word template renderer (render_word).
+Orkestreert alle veldbouwers in één dict die wordt doorgegeven
+aan de renderer van het Word-sjabloon (render_word).
 
-Tuple values ("text", "url") or ("text", "url", "trailing text")
-are converted to clickable hyperlinks by the Word generator.
+Tuple-waarden ("text", "url") of ("text", "url", "trailing text")
+worden door de Word-generator omgezet in klikbare hyperlinks.
 """
 from PCMail.builders.product_fields import (
     build_payoff,
@@ -34,15 +34,15 @@ from PCMail.builders.email_body import build_sas_word_text
 
 def build_word_context(product, todo_html: str) -> dict:
     """
-    Builds the complete bookmark → value mapping for the Word template.
-    Called once per mail generation with the fully populated PCMailProduct.
+    Bouwt de volledige bladwijzer → waarde-mapping voor het Word-sjabloon.
+    Wordt eenmaal per mailgeneratie aangeroepen met de volledig ingevulde PCMailProduct.
     """
     p = product
     marketing, other_docs = marketing_logic(p.client, p.product)
     primary_bench, fallback_bench = _format_benchmarks(p)
 
     ctx = {
-        # Core identity
+        # Kernidentiteit
         "client":        build_client_text(p.client),
         "ccy":           p.currency,
         "issue":         p.issue_size,
@@ -52,11 +52,11 @@ def build_word_context(product, todo_html: str) -> dict:
         "trade_date":    p.trade_date,
         "issue_date":    p.issue_date,
 
-        # Client / regulatory
+        # Klant / regelgeving
         "juri":          build_jurisdiction(p.client),
         "distr":         build_distributor(p.client),
 
-        # Product-specific fields
+        # Productspecifieke velden
         "parp":          build_parp(p.product),
         "payoff":        build_payoff(
                              product=p.product,
@@ -67,6 +67,7 @@ def build_word_context(product, todo_html: str) -> dict:
                              underlyings=[u.ticker for u in p.underlyings],
                              tail=getattr(p, "tail", ""),
                              obs=getattr(p, "obs", ""),
+                             coupon_frequency=getattr(p, "coupon_frequency", "Annual"),
                          ),
         "fee":           build_fee(p.struct_fee, p.dist_fee),
         "issuer_series": build_issuer_series(
@@ -77,7 +78,7 @@ def build_word_context(product, todo_html: str) -> dict:
         "kid":           build_kid(p.product, p.client),
         "compliance":    build_compliance(p.issuer),
 
-        # Marketing / documents
+        # Marketing / documenten
         "marketing":     marketing,
         "other_docs":    other_docs,
 
@@ -85,7 +86,7 @@ def build_word_context(product, todo_html: str) -> dict:
         "benchmark":          primary_bench,
         "fallback_benchmark": fallback_bench,
 
-        # SAS todo block (Word bookmark)
+        # SAS-takenblok (Word-bladwijzer)
         "todo":          build_sas_word_text(p),
     }
 
@@ -94,15 +95,15 @@ def build_word_context(product, todo_html: str) -> dict:
         if marketing == "Yes" and p.client.strip().lower() == "vl nl"
         else ""
     )
-    # Keep separate inlegvel bookmark empty when we append it after brochure link.
+    # Houd de aparte inlegvel-bladwijzer leeg wanneer we die achter de brochurelink toevoegen.
     ctx["inlegvel"] = ""
 
-    # Prospectus hyperlink
+    # Prospectus-hyperlink
     pros_code = auto_prospectus_code(p.product)
     pros_text, pros_url = prospectus_logic(pros_code)
     ctx["prospectus"] = (pros_text, pros_url)
 
-    # Brochure hyperlink (only for VL NL)
+    # Brochure-hyperlink (alleen voor VL NL)
     if marketing == "Yes":
         text, url = brochure_logic(p.product)
         if text and url:
@@ -112,7 +113,7 @@ def build_word_context(product, todo_html: str) -> dict:
     else:
         ctx["brochure"] = ""
 
-    # Product video hyperlink (only for VL NL, not Memory Coupon)
+    # Productvideo-hyperlink (alleen voor VL NL, niet voor Memory Coupon)
     if other_docs == "Yes":
         text, url = video_logic(p.product)
         ctx["video"] = (text, url) if text and url else ""
@@ -123,7 +124,7 @@ def build_word_context(product, todo_html: str) -> dict:
 
 
 def _format_benchmarks(product) -> tuple[str, str]:
-    """Joins primary and fallback benchmark names from all underlyings."""
+    """Voegt primaire en alternatieve benchmarknamen van alle onderliggende waarden samen."""
     primary = ", ".join(
         u.primary_benchmark for u in product.underlyings
         if getattr(u, "primary_benchmark", None)
@@ -136,7 +137,7 @@ def _format_benchmarks(product) -> tuple[str, str]:
 
 
 def format_hedge_line(book_type: str, hedge_party: str, upfront: str, amount: str) -> str:
-    """Formats the hedge description for the Word context."""
+    """Formatteert de hedge-omschrijving voor de Word-context."""
     if book_type == "Own Book":
         return "own book"
     return f"{amount} BTB with {hedge_party} @{upfront}%"

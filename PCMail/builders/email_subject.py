@@ -1,13 +1,13 @@
 """
-Email subject builder for the PC notification mail.
+Onderwerpbouwer voor de PC-notificatiemail.
 """
 from PCMail.models.inputdefinition import PCMailProduct
 
 
 def build_email_subject(product: PCMailProduct) -> str:
     """
-    Builds the full Outlook subject line for the PC mail.
-    Format: 'PC Product Manufacturing Group: NEW PRODUCT NOTIFICATION (...) - series N'
+    Bouwt de volledige Outlook-onderwerpregel voor de PC-mail.
+    Formaat: 'PC Product Manufacturing Group: NEW PRODUCT NOTIFICATION (...) - series N'
     """
     p = product
     base = "PC Product Manufacturing Group: NEW PRODUCT NOTIFICATION"

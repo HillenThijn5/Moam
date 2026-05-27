@@ -23,7 +23,7 @@ def _add_business_days(start: date, n: int) -> date:
 # ---------------------------------------------------------------------------
 
 class PCMailTab:
-    """PC Mail tab – complete, GUI-friendly."""
+    """PC Mail-tab – compleet en GUI-vriendelijk."""
 
     def __init__(self, parent):
         self.frame = ttk.Frame(parent)
@@ -52,7 +52,7 @@ class PCMailTab:
     # -----------------------------------------------------------------------
     def _build_ui(self, parent):
 
-        # ── SharePoint toolbar ────────────────────────────────────────────
+        # ── SharePoint-werkbalk ──────────────────────────────────────────
         sp_frame = ttk.Frame(parent)
         sp_frame.pack(fill="x", padx=10, pady=(8, 2))
         ttk.Button(
@@ -65,13 +65,13 @@ class PCMailTab:
             foreground="#888", font=("Segoe UI", 8),
         ).pack(side="left", padx=10)
 
-        # ── Section 1 : Product Identity ──────────────────────────────────
+        # ── Sectie 1 : Product Identiteit ─────────────────────────────────
         id_frame = ttk.LabelFrame(parent, text="Product Identity")
         id_frame.pack(fill="x", padx=10, pady=(4, 4))
 
         self.vars = {}
 
-        # Row 0: Issuer | Currency
+        # Rij 0: Issuer | Currency
         ttk.Label(id_frame, text="Issuer:").grid(row=0, column=0, sticky="w", padx=8, pady=3)
         v_issuer = tk.StringVar()
         ttk.Combobox(id_frame, textvariable=v_issuer, values=ISSUERS,
@@ -84,7 +84,7 @@ class PCMailTab:
                      state="readonly", width=16).grid(row=0, column=3, padx=8, pady=3, sticky="w")
         self.vars["currency"] = v_currency
 
-        # Row 1: Client | Product
+        # Rij 1: Client | Product
         ttk.Label(id_frame, text="Client:").grid(row=1, column=0, sticky="w", padx=8, pady=3)
         v_client = tk.StringVar()
         _client_cb = ttk.Combobox(id_frame, textvariable=v_client, values=CLIENTS,
@@ -100,7 +100,7 @@ class PCMailTab:
                      state="readonly", width=24).grid(row=1, column=3, padx=8, pady=3, sticky="w")
         self.vars["product"] = v_product
 
-        # Row 2: Series | Maturity
+        # Rij 2: Series | Maturity
         ttk.Label(id_frame, text="Series:").grid(row=2, column=0, sticky="w", padx=8, pady=3)
         v_series = tk.StringVar()
         ttk.Entry(id_frame, textvariable=v_series, width=18).grid(
@@ -117,11 +117,11 @@ class PCMailTab:
         self._maturity_combo.bind("<<ComboboxSelected>>", self._on_maturity_change)
         self.vars["maturity"] = v_maturity
 
-        # ── Section 2 : Commercial ─────────────────────────────────────────
+        # ── Sectie 2 : Commercieel ────────────────────────────────────────
         com_frame = ttk.LabelFrame(parent, text="Commercial")
         com_frame.pack(fill="x", padx=10, pady=4)
 
-        # Row 0: Issue Size | Sold
+        # Rij 0: Issue Size | Sold
         ttk.Label(com_frame, text="Issue Size:").grid(row=0, column=0, sticky="w", padx=8, pady=3)
         v_issue = tk.StringVar()
         ttk.Entry(com_frame, textvariable=v_issue, width=18).grid(
@@ -134,12 +134,12 @@ class PCMailTab:
             row=0, column=3, padx=8, pady=3, sticky="w")
         self.vars["sold"] = v_sold
 
-        # Row 1: hint text for Issue Size / Sold format
-        ttk.Label(com_frame, text="(in k or mio — e.g. 500k, 1.25 mio)",
+        # Rij 1: hulptekst voor het formaat van Issue Size / Sold
+        ttk.Label(com_frame, text="(in k of mio — bijv. 500k, 1.25 mio)",
                   foreground="#888", font=("Segoe UI", 8)).grid(
             row=1, column=1, columnspan=3, sticky="w", padx=8, pady=(0, 2))
 
-        # Row 2: Struct Fee | Dist Fee
+        # Rij 2: Struct Fee | Dist Fee
         ttk.Label(com_frame, text="Struct Fee (%):").grid(row=2, column=0, sticky="w", padx=8, pady=3)
         v_struct = tk.StringVar(value="1.5")
         ttk.Entry(com_frame, textvariable=v_struct, width=10).grid(
@@ -152,7 +152,7 @@ class PCMailTab:
             row=2, column=3, padx=8, pady=3, sticky="w")
         self.vars["dist_fee"] = v_dist
 
-        # ── Section 3 : Options (VLK code only) ───────────────────────────
+        # ── Sectie 3 : Opties ─────────────────────────────────────────────
         opt_frame = ttk.LabelFrame(parent, text="Options")
         opt_frame.pack(fill="x", padx=10, pady=4)
 
@@ -163,7 +163,16 @@ class PCMailTab:
             variable=self._vlk_code_var,
         ).grid(row=0, column=0, sticky="w", padx=8, pady=4)
 
-        # ── Section 4 : Hedging ───────────────────────────────────────────
+        ttk.Label(opt_frame, text="Coupon Frequency:").grid(
+            row=0, column=2, sticky="w", padx=(16, 8), pady=4)
+        self._coupon_freq_var = tk.StringVar(value="Annual")
+        ttk.Combobox(
+            opt_frame, textvariable=self._coupon_freq_var,
+            values=["Annual", "Semi-Annual", "Quarterly"],
+            state="readonly", width=14,
+        ).grid(row=0, column=3, sticky="w", padx=8, pady=4)
+
+        # ── Sectie 4 : Hedging ────────────────────────────────────────────
         hedge_frame = ttk.LabelFrame(parent, text="Hedging")
         hedge_frame.pack(fill="x", padx=10, pady=4)
 
@@ -182,7 +191,7 @@ class PCMailTab:
 
         self._btb_vars = {}
 
-        # Hedge Party — search widget backed by HEDGEPARTY list
+        # Hedge Party — zoekwidget op basis van de HEDGEPARTY-lijst
         ttk.Label(self._btb_frame, text="Hedge Party:").grid(
             row=0, column=0, sticky="w", padx=(0, 6), pady=2)
         self._btb_hedge_search = UnderlyingSearchEntry(
@@ -193,7 +202,7 @@ class PCMailTab:
         )
         self._btb_hedge_search.grid(row=0, column=1, sticky="w", pady=2)
 
-        # Upfront and Amount — plain entries
+        # Upfront en Amount — gewone invoervelden
         for i, (lbl, key) in enumerate([
             ("Upfront", "upfront"),
             ("Amount",  "amount"),
@@ -207,7 +216,7 @@ class PCMailTab:
 
         self._btb_frame.grid_remove()
 
-        # ── Section 5 : Payoff Parameters ─────────────────────────────────
+        # ── Sectie 5 : Payoff Parameters ──────────────────────────────────
         self._payoff_frame = ttk.LabelFrame(parent, text="Payoff Parameters")
         self._payoff_frame.pack(fill="x", padx=10, pady=4)
 
@@ -217,7 +226,7 @@ class PCMailTab:
         self._payoff_widgets = []
         self.vars["product"].trace_add("write", self._on_product_change)
 
-        # ── Section 6 : Underlyings ────────────────────────────────────────
+        # ── Sectie 6 : Onderliggende waarden ─────────────────────────────
         self._ul_frame = ttk.LabelFrame(parent, text="Underlyings")
         self._ul_frame.pack(fill="x", padx=10, pady=4)
         ul_frame = self._ul_frame
@@ -249,14 +258,14 @@ class PCMailTab:
                   foreground="#888", font=("Segoe UI", 8)).pack(
             anchor="w", padx=8, pady=(0, 4))
 
-        # ── Section 7 : Dates ─────────────────────────────────────────────
+        # ── Sectie 7 : Datums ─────────────────────────────────────────────
         date_frame = ttk.LabelFrame(parent, text="Dates")
         date_frame.pack(fill="x", padx=10, pady=4)
 
         trade = date.today()
         issue = _add_business_days(trade, 5)
 
-        # Trade Date row
+        # Trade Date-rij
         ttk.Label(date_frame, text="Trade Date:").grid(
             row=0, column=0, sticky="w", padx=8, pady=3)
         self._trade_override = tk.BooleanVar(value=False)
@@ -290,7 +299,7 @@ class PCMailTab:
         ttk.Label(date_frame, text="(auto = trade + 5 business days)",
                   foreground="#888").grid(row=1, column=3, sticky="w", padx=4)
 
-        # ── Section 8 : Denomination override ─────────────────────────────
+        # ── Sectie 8 : Handmatige denominatie-instelling ─────────────────
         den_frame = ttk.LabelFrame(parent, text="Denomination")
         den_frame.pack(fill="x", padx=10, pady=4)
 
@@ -307,7 +316,7 @@ class PCMailTab:
         ttk.Label(den_frame, text='e.g. "100k + 1k"',
                   foreground="#888").grid(row=0, column=2, sticky="w", padx=4)
 
-        # ── Buttons ───────────────────────────────────────────────────────
+        # ── Knoppen ──────────────────────────────────────────────────────
         btn_frame = ttk.Frame(parent)
         btn_frame.pack(fill="x", padx=10, pady=10)
 
@@ -316,19 +325,19 @@ class PCMailTab:
         ttk.Button(btn_frame, text="Send PC Mail",
                    command=self._send).pack(side="left", padx=5)
 
-        # init payoff visibility
+        # initialiseer payoff-zichtbaarheid
         self._on_product_change()
 
-    # ── Hedge helpers ─────────────────────────────────────────────────────
+    # ── Hedge-hulpfuncties ───────────────────────────────────────────────
     def _on_hedge_change(self):
         if self._hedge_type.get() == "BTB":
             self._btb_frame.grid()
         else:
             self._btb_frame.grid_remove()
 
-    # ── Client / maturity auto-fill ───────────────────────────────────────
+    # ── Client / looptijd auto-invullen ──────────────────────────────────
     def _compute_auto_struct_fee(self) -> str:
-        """Return auto-calculated structuring fee as a string, or '' if unknown."""
+        """Geef de automatisch berekende structureringsfee terug als string, of '' als die onbekend is."""
         if self.vars["client"].get().strip() == "ING Bank":
             return "0.5"
         maturity = self.vars["maturity"].get().strip()
@@ -356,7 +365,7 @@ class PCMailTab:
             self._btb_vars["upfront"].set("0.5")
             self._btb_vars["amount"].set("")
         else:
-            # Re-apply maturity-based fee when switching away from ING
+            # Pas de op looptijd gebaseerde fee opnieuw toe als je van ING weggaat
             self._on_maturity_change()
 
     def _build_hedged_string(self) -> str:
@@ -367,12 +376,27 @@ class PCMailTab:
         amount  = self._btb_vars["amount"].get().strip()
         return f"{amount} BTB with {party} @{upfront}%"
 
-    # ── Underlying helpers ────────────────────────────────────────────────
+    # ── Hulpfuncties voor onderliggende waarden ──────────────────────────
     def _add_underlying(self, ticker: str):
         ticker = ticker.strip().upper()
-        if ticker and ticker not in self.selected_underlyings:
+        if not ticker or ticker in self.selected_underlyings:
+            return
+        # Exacte match in bekende onderliggende waarden
+        if ticker in UNDERLYINGS:
             self.selected_underlyings.append(ticker)
             self._refresh_ul_display()
+            return
+        # Benadering: vind onderliggende waarden die beginnen met de verwerkte ticker
+        matches = [u for u in UNDERLYINGS if u.upper().startswith(ticker)]
+        if len(matches) == 1:
+            resolved = matches[0]
+            if resolved not in self.selected_underlyings:
+                self.selected_underlyings.append(resolved)
+                self._refresh_ul_display()
+            return
+        # Terugval: voeg toe zoals het is (gebruiker kan handmatig corrigeren)
+        self.selected_underlyings.append(ticker)
+        self._refresh_ul_display()
 
     def _remove_last_underlying(self):
         if self.selected_underlyings:
@@ -389,7 +413,7 @@ class PCMailTab:
                 joined = joined[:26] + "…"
             self._ul_display_var.set(f"{joined}  ({n})")
 
-    # ── Product-change ────────────────────────────────────────────────────
+    # ── Product-verandering ───────────────────────────────────────────────
     def _on_product_change(self, *_):
         for w in self._payoff_widgets:
             w.destroy()
@@ -408,28 +432,28 @@ class PCMailTab:
         if product in ("Index Garantie Note", "Index Garantie Note Capped"):
             self._add_asianing_row(len(fields))
 
-        # Autofill aflossingsbarrière = 100 for Trigger products
+        # Vul aflossingsbarrière automatisch in = 100 voor Trigger producten
         if product == "Trigger Plus Note" and not self.vars["param2"].get().strip():
             self.vars["param2"].set("100")
 
-        # Fixed Rate Note: dist fee = 0.25, struct fee = empty
+        # Fixed Rate Note: dist fee = 0.25, struct fee blijft leeg
         if product == "Fixed Rate Note":
             self.vars["struct_fee"].set("")
             self.vars["dist_fee"].set("0.25")
         elif not self.vars["struct_fee"].get().strip():
-            # Restore maturity-based default when switching away from FRN
+            # Herstel de op looptijd gebaseerde standaardwaarde als je van FRN weggaat
             fee = self._compute_auto_struct_fee()
             if fee:
                 self.vars["struct_fee"].set(fee)
 
-        # Show/hide underlying section (Fixed Rate Note has no underlying)
+        # Toon of verberg de sectie met onderliggende waarden (Fixed Rate Note heeft geen onderliggende waarde)
         if product in PRODUCTS_NO_UNDERLYING:
             self._ul_frame.pack_forget()
         elif not self._ul_frame.winfo_ismapped():
             self._ul_frame.pack(fill="x", padx=10, pady=4, after=self._payoff_frame)
 
     def _add_asianing_row(self, row: int):
-        """Asianing button that expands to tail + obs entries, with a cancel/clear option."""
+        """Asianing-knop die uitklapt naar tail + obs-velden, met een annuleer-/wisoptie."""
         container = ttk.Frame(self._payoff_frame)
         container.grid(row=row, column=0, columnspan=2, sticky="w", padx=4, pady=2)
         self._payoff_widgets.append(container)
@@ -456,13 +480,13 @@ class PCMailTab:
                        command=_clear_and_collapse).grid(row=2, column=0, columnspan=2,
                                                          sticky="w", padx=4, pady=2)
 
-        # Auto-expand if values already set (e.g. after switching product type back)
+        # Klap automatisch uit als waardes al gezet zijn (bijv. na terugwisselen van producttype)
         if self._asianing_tail_var.get() or self._asianing_obs_var.get():
             _show_entries()
         else:
             _show_button()
 
-    # ── Date / denom toggles ─────────────────────────────────────────────
+    # ── Datum-/denominatie-schakelaars ───────────────────────────────────
     def _toggle_trade_date(self):
         self._trade_date_entry.configure(
             state="normal" if self._trade_override.get() else "disabled")
@@ -477,18 +501,19 @@ class PCMailTab:
         self._denom_entry.configure(
             state="normal" if self._den_override.get() else "disabled")
 
-    # ── Clear All ─────────────────────────────────────────────────────────
+    # ── Wis Alles ─────────────────────────────────────────────────────────
     def _clear_all(self):
-        # Comboboxes / entries in self.vars
+        # Comboboxes / invoervelden in self.vars
         for key, v in self.vars.items():
             v.set("")
 
-        # Fees back to defaults
+        # Fees terug naar standaardwaarden
         self.vars["struct_fee"].set("1.5")
         self.vars["dist_fee"].set("0.0")
 
-        # Options
+        # Opties
         self._vlk_code_var.set(True)
+        self._coupon_freq_var.set("Annual")
 
         # Hedge → Own Book
         self._hedge_type.set("Own Book")
@@ -497,16 +522,16 @@ class PCMailTab:
         for v in self._btb_vars.values():
             v.set("")
 
-        # Underlyings
+        # Onderliggende waarden
         self.selected_underlyings.clear()
         self._ul_search.clear()
         self._refresh_ul_display()
 
-        # Trade date override
+        # Handmatige Trade Date-instelling
         self._trade_override.set(False)
         self._toggle_trade_date()
 
-        # Issue date override
+        # Handmatige Issue Date-instelling
         self._issue_override.set(False)
         self._toggle_issue_date()
         trade = date.today()
@@ -517,12 +542,12 @@ class PCMailTab:
         self._asianing_tail_var.set("")
         self._asianing_obs_var.set("")
 
-        # Denomination override
+        # Handmatige denominatie-instelling
         self._den_override.set(False)
         self._toggle_denom()
         self._denom_var.set("")
 
-    # ── Build PCMailProduct ───────────────────────────────────────────────
+    # ── Bouw PCMailProduct ────────────────────────────────────────────────
     def _build_product(self):
         from PCMail.models.inputdefinition import PCMailProduct, Underlying
 
@@ -579,21 +604,22 @@ class PCMailTab:
             denomination=self._denom_var.get().strip() if self._den_override.get() else "",
             tail=self._asianing_tail_var.get().strip(),
             obs=self._asianing_obs_var.get().strip(),
+            coupon_frequency=self._coupon_freq_var.get(),
         )
 
-    # ── SharePoint loader ─────────────────────────────────────────────────
+    # ── SharePoint-inlader ────────────────────────────────────────────────
     def _open_sharepoint_picker(self):
-        from gui.dialogs.sharepoint_picker import SharePointPickerDialog
+        from gui.sharepointgui.sharepoint_picker import SharePointPickerDialog
         dlg = SharePointPickerDialog(self.frame, SHAREPOINT_SUMMARY_PATH)
         if dlg.result:
             self._load_from_sharepoint(dlg.result)
 
     def _load_from_sharepoint(self, deal: dict):
-        """Populate the form from a parsed SharePoint deal dict."""
-        # Clear first so nothing stale remains
+        """Vul het formulier in vanuit een verwerkte SharePoint-deal-dict."""
+        # Wis eerst zodat er niks ouds blijft hangen
         self._clear_all()
 
-        # ── Product identity ──────────────────────────────────────────────
+        # ── Product identiteit ────────────────────────────────────────────
         if deal.get("issuer") and deal["issuer"] in ISSUERS:
             self.vars["issuer"].set(deal["issuer"])
         if deal.get("product") and deal["product"] in list(PRODUCT_TYPES.keys()):
@@ -607,7 +633,7 @@ class PCMailTab:
         if deal.get("currency") and deal["currency"] in CURRENCIES:
             self.vars["currency"].set(deal["currency"])
 
-        # ── Payoff params from long name ──────────────────────────────────
+        # ── Payoff-params uit de lange naam ───────────────────────────────
         for key in ("param1", "param2", "param3", "param4"):
             val = deal.get(key, "")
             if val:
@@ -617,7 +643,7 @@ class PCMailTab:
         for ul in deal.get("underlyings", []):
             self._add_underlying(ul)
 
-        # ── Dates ─────────────────────────────────────────────────────────
+        # ── Datums ────────────────────────────────────────────────────────
         if deal.get("trade_date"):
             self._trade_override.set(True)
             self._toggle_trade_date()
@@ -631,12 +657,14 @@ class PCMailTab:
         # ── VLK code ──────────────────────────────────────────────────────
         if "vlk_code" in deal:
             self._vlk_code_var.set(deal["vlk_code"])
+            if not deal["vlk_code"]:
+                self.vars["client"].set("")
 
-        # ── Sold (total from comments adviser lines) ──────────────────────
+        # ── Sold (totaal uit opmerkingenregels van adviseurs) ─────────────
         if deal.get("total_sold"):
             self.vars["sold"].set(deal["total_sold"])
 
-        # ── Hedge info ────────────────────────────────────────────────────
+        # ── Hedge-info ───────────────────────────────────────────────────
         hedge = deal.get("hedge_party", "").strip()
         if hedge:
             self._hedge_type.set("BTB")
@@ -647,17 +675,17 @@ class PCMailTab:
             if deal.get("btb_amount"):
                 self._btb_vars["amount"].set(deal["btb_amount"])
 
-        # ── Re-render payoff widgets + fee defaults ────────────────────────
+        # ── Bouw payoff-widgets opnieuw op + fee-standaardwaarden ────────
         self._on_product_change()
         self._on_maturity_change()
 
-        # Restore params after _on_product_change cleared them
+        # Zet params terug nadat _on_product_change ze heeft gewist
         for key in ("param1", "param2", "param3", "param4"):
             val = deal.get(key, "")
             if val:
                 self.vars[key].set(val)
 
-    # ── Actions ───────────────────────────────────────────────────────────
+    # ── Acties ────────────────────────────────────────────────────────────
     def _send(self):
         try:
             if not self.vars["product"].get():

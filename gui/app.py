@@ -10,13 +10,13 @@ from gui.tabs.increase_decrease_tab import IncreaseDecreaseTab
 
 
 def _icon_path() -> Path:
-    """Resolve assets/app.ico for both normal and frozen (PyInstaller) runs."""
+    """Bepaal het pad naar assets/app.ico voor normale en frozen (PyInstaller)-uitvoeringen."""
     base = Path(sys._MEIPASS) if getattr(sys, "frozen", False) else Path(__file__).resolve().parent.parent
     return base / "assets" / "app.ico"
 
 
 def _set_taskbar_icon() -> None:
-    """Tell Windows to use the EXE icon for the taskbar button (not the Python icon)."""
+    """Laat Windows het EXE-icoon gebruiken voor de taakbalkknop (niet het Python-icoon)."""
     try:
         import ctypes
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("VLK.MoamProject.1")
@@ -25,7 +25,7 @@ def _set_taskbar_icon() -> None:
 
 
 def _apply_icon(window: tk.Wm) -> None:
-    """Set app icon on any Tk or Toplevel window — tries iconphoto first, falls back to iconbitmap."""
+    """Zet het programma-icoon op elk Tk- of Toplevel-venster — probeert eerst iconphoto en valt anders terug op iconbitmap."""
     ico = _icon_path()
     if not ico.exists():
         return
@@ -34,7 +34,7 @@ def _apply_icon(window: tk.Wm) -> None:
         img = Image.open(str(ico))
         photo = ImageTk.PhotoImage(img)
         window.iconphoto(True, photo)
-        window._icon_ref = photo  # prevent garbage collection
+        window._icon_ref = photo  # voorkom dat garbage collection hem opruimt
     except Exception:
         try:
             window.iconbitmap(str(ico))
@@ -44,10 +44,10 @@ def _apply_icon(window: tk.Wm) -> None:
 
 class MailGeneratorApp(tk.Tk):
     """
-    Main application window.
-    On startup it hides itself, shows a Toplevel splash while the SharePoint
-    Excel refreshes in the background, then builds the full UI and shows.
-    Only ONE tk.Tk() instance is created throughout the app lifetime.
+    Hoofdvenster van de app.
+    Bij het opstarten verbergt die zichzelf, toont een Toplevel-splash terwijl SharePoint
+    Excel op de achtergrond ververst, bouwt daarna de volledige UI en laat die zien.
+    Tijdens de hele levensduur van de app wordt maar ÉÉN tk.Tk()-exemplaar aangemaakt.
     """
 
     def __init__(self):
@@ -56,13 +56,13 @@ class MailGeneratorApp(tk.Tk):
         _apply_icon(self)
         self.withdraw()
         self.products: list[dict] = []
-        self.max_products = 4
-        # Start pre-warming heavy imports immediately in background
+        self.max_products = 41
+        # Start het voorverwarmen van zware imports meteen op de achtergrond
         from gui.prewarmer import start as prewarm_start
         prewarm_start()
         self._show_splash()
 
-    # ── Splash ────────────────────────────────────────────────────────────
+    # ── Opstartscherm ─────────────────────────────────────────────────────
     def _show_splash(self):
         self._splash = tk.Toplevel(self)
         self._splash.title("Mail Generator")
@@ -91,7 +91,11 @@ class MailGeneratorApp(tk.Tk):
         ttk.Label(frame, textvariable=self._status_var,
                   foreground="#555", font=("Segoe UI", 8)).pack(pady=(4, 0))
 
-        # Center splash on screen
+        # Start de gedeelde verborgen Excel alvast terwijl de gebruiker het opstartscherm leest.
+        # Draait op de hoofddraad (COM-safe), zodat de eerste mail meteen klaarstaat.
+        self.after(50, self._warm_excel)
+
+        # Centreer het opstartscherm op het scherm
         self._splash.update_idletasks()
         w = self._splash.winfo_reqwidth()
         h = self._splash.winfo_reqheight()
@@ -99,9 +103,18 @@ class MailGeneratorApp(tk.Tk):
         sh = self._splash.winfo_screenheight()
         self._splash.geometry(f"+{(sw - w) // 2}+{(sh - h) // 2}")
 
-    # ── Refresh ───────────────────────────────────────────────────────────
+    # ── Excel alvast opwarmen ────────────────────────────────────────────
+    def _warm_excel(self):
+        """Start de blijvende verborgen Excel-instantie terwijl het opstartscherm zichtbaar is."""
+        try:
+            from MarketingMail.excel_handler import _get_shared_xl
+            _get_shared_xl()
+        except Exception:
+            pass
+
+    # ── Verversen ────────────────────────────────────────────────────────
     def _start_refresh(self):
-        """User chose to refresh — start in background, show progress, wait in splash."""
+        """Gebruiker koos om te verversen — start op de achtergrond, toon voortgang en wacht in het opstartscherm."""
         self._status_var.set("Refreshing SharePoint data, please wait…")
         self._bar.start(12)
         try:
@@ -116,7 +129,7 @@ class MailGeneratorApp(tk.Tk):
         self.after(500, self._poll)
 
     def _skip_refresh(self):
-        """User chose to skip — mark refresh as done and open immediately."""
+        """Gebruiker koos om over te slaan — markeer het verversen als klaar en open meteen."""
         from sharepoint.reader import _refresh_done
         _refresh_done.set()
         self._open_main()
@@ -144,14 +157,14 @@ class MailGeneratorApp(tk.Tk):
         self._build_ui()
         self.deiconify()
 
-    # ── Main UI ───────────────────────────────────────────────────────────
+    # ── Hoofd-UI ──────────────────────────────────────────────────────────
     def _build_ui(self):
         self.title("Mail Generator - Unified Interface")
         self.geometry("700x800")
         self.protocol("WM_DELETE_WINDOW", self._on_close)
         _apply_icon(self)
 
-        # ── Global toolbar ────────────────────────────────────────────────
+        # ── Globale werkbalk ──────────────────────────────────────────────
         toolbar = ttk.Frame(self, relief="flat")
         toolbar.pack(fill="x", padx=8, pady=(6, 0))
 
@@ -159,6 +172,11 @@ class MailGeneratorApp(tk.Tk):
             toolbar, text="🔄  Refresh SharePoint",
             command=self._manual_refresh,
         ).pack(side="left")
+
+        ttk.Button(
+            toolbar, text="🐛  Debug",
+            command=self._show_debug,
+        ).pack(side="left", padx=(8, 0))
 
         self._refresh_status = tk.StringVar(value="")
         ttk.Label(
@@ -181,9 +199,9 @@ class MailGeneratorApp(tk.Tk):
         notebook.add(pc_tab.frame,        text="PC Mail")
         notebook.add(id_tab.frame,        text="Increase / Decrease")
 
-    # ── Manual SharePoint refresh ─────────────────────────────────────────
+    # ── SharePoint handmatig verversen ──────────────────────────────────
     def _manual_refresh(self):
-        """Triggered by the toolbar button — refresh in background, show status."""
+        """Getriggerd door de werkbalkknop — ververs op de achtergrond en toon de status."""
         self._refresh_status.set("⏳ Refreshing…")
         self.update_idletasks()
         try:
@@ -213,12 +231,43 @@ class MailGeneratorApp(tk.Tk):
         import sys
         sys.exit(0)
 
+    # ── Debug dialoog ─────────────────────────────────────────────────────
+    def _show_debug(self):
+        """Draai volledige diagnostiek en toon die in een scrollbaar dialoogvenster."""
+        from statics.mail_debug import full_diagnostics
+        import threading
+
+        win = tk.Toplevel(self)
+        win.title("Mail Generator - Debug Report")
+        win.geometry("750x600")
+        _apply_icon(win)
+
+        text = tk.Text(win, wrap="word", font=("Consolas", 9))
+        vsb = ttk.Scrollbar(win, orient="vertical", command=text.yview)
+        text.configure(yscrollcommand=vsb.set)
+        vsb.pack(side="right", fill="y")
+        text.pack(fill="both", expand=True)
+
+        text.insert("end", "Running diagnostics...\n")
+        text.config(state="disabled")
+
+        def _run():
+            report = full_diagnostics()
+            def _update():
+                text.config(state="normal")
+                text.delete("1.0", "end")
+                text.insert("end", report)
+                text.config(state="disabled")
+            win.after(0, _update)
+
+        threading.Thread(target=_run, daemon=True).start()
+
 
 def main():
     import sys
     app = MailGeneratorApp()
     app.mainloop()
-    sys.exit(0)   # ensure clean exit even if mainloop returns without destroy
+    sys.exit(0)   # zorg voor een nette afsluiting, ook als mainloop terugkomt zonder destroy
 
 
 if __name__ == "__main__":

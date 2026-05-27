@@ -6,8 +6,8 @@ from MarketingMail.config import get_intro_text
 
 def build_denomination_list(products: List[MarketingProduct]) -> list:
     """
-    Extract unique denominations from products.
-    E.g., [EUR 100,000, USD 150,000]
+    Haal unieke denominaties uit producten.
+    Bijv. [EUR 100,000, USD 150,000]
     """
     denoms = set()
     for p in products:
@@ -21,19 +21,19 @@ def load_marketing_data(
         products: List[MarketingProduct]
 ) -> dict:
     """
-    Main data loader: applies defaults, generates intro text with all denominations.
+    Hoofdloader voor data: past defaults toe en maakt introtekst met alle denominaties.
 
-    Args:
-        title: Excel cell B9 value
-        products: List of MarketingProduct
+    Parameters:
+        title: Waarde voor Excel-cel B9
+        products: Lijst met MarketingProduct
 
-    Returns:
-        dict with keys: title, intro_text, products (all as dicts)
+    Geeft terug:
+        dict met de sleutels: title, intro_text, products (alles als dicts)
     """
-    # Convert all products to dicts (properties auto-derive)
+    # Zet alle producten om naar dicts (properties worden automatisch afgeleid)
     normalized_products = [p.to_dict() for p in products]
 
-    # Build denominations from actual products
+    # Bouw de denominaties op uit de echte producten
     denominations = build_denomination_list(products)
     intro_text = get_intro_text(denominations)
 

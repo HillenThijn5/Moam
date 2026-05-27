@@ -21,20 +21,20 @@ def _add_business_days(start: date, n: int) -> date:
 
 
 class MarketingMailTab:
-    """Marketing Mail tab — single product on screen, buffer up to 4 products."""
+    """Marketing Mail-tab — één product op het scherm, buffer tot 4 producten."""
 
     def __init__(self, parent):
         self.frame = ttk.Frame(parent)
 
-        # Buffer for up to 4 products
+        # Buffer voor tot 4 producten
         self.products: list[dict] = []
         self.max_products = 4
 
-        # Asianing vars persist across product type changes
+        # Asianing-variabelen blijven behouden bij producttypewijzigingen
         self._asianing_tail_var = tk.StringVar(value="")
         self._asianing_obs_var = tk.StringVar(value="")
 
-        # ── SharePoint toolbar ────────────────────────────────────────────
+        # ── SharePoint-werkbalk ──────────────────────────────────────────
         toolbar = ttk.Frame(self.frame)
         toolbar.pack(fill="x", padx=10, pady=(8, 0))
         ttk.Button(
@@ -47,7 +47,7 @@ class MarketingMailTab:
             foreground="#888", font=("Segoe UI", 8),
         ).pack(side="left")
 
-        # Two-column top: left = settings, right = product parameters
+        # Bovenkant in twee kolommen: links = instellingen, rechts = productparameters
         top_frame = ttk.Frame(self.frame)
         top_frame.pack(fill="x", padx=10, pady=10)
         top_frame.columnconfigure(0, weight=1)
@@ -64,10 +64,10 @@ class MarketingMailTab:
         self.vars = {}
         row = 0
 
-        # Underlying basket state
+        # Status van het mandje met onderliggende waarden
         self.selected_underlyings: list[str] = []
 
-        # Product type
+        # Producttype
         ttk.Label(info_frame, text="Product Type:").grid(row=row, column=0, sticky="w", padx=5, pady=4)
         default_pt = MARKETING_PRODUCT_TYPES[0] if MARKETING_PRODUCT_TYPES else "TRIGGER"
         self.vars["product_type"] = tk.StringVar(value=default_pt)
@@ -80,7 +80,7 @@ class MarketingMailTab:
         product_combo.bind("<<ComboboxSelected>>", self._on_product_type_changed)
         row += 1
 
-        # Issuer
+        # Emittent
         ttk.Label(info_frame, text="Issuer:").grid(row=row, column=0, sticky="w", padx=5, pady=4)
         self.vars["issuer"] = tk.StringVar(value=MARKETING_ISSUERS[0])
         issuer_combo = ttk.Combobox(
@@ -90,7 +90,7 @@ class MarketingMailTab:
         issuer_combo.grid(row=row, column=1, padx=5, pady=4)
         row += 1
 
-        # Underlying — UnderlyingSearchEntry (same pattern as doc mail / PC mail)
+        # Underlying — UnderlyingSearchEntry (zelfde patroon als doc mail / PC mail)
         ttk.Label(info_frame, text="Underlying:").grid(row=row, column=0, sticky="w", padx=5, pady=4)
         ul_pick_row = ttk.Frame(info_frame)
         ul_pick_row.grid(row=row, column=1, padx=5, pady=4, sticky="w")
@@ -117,31 +117,31 @@ class MarketingMailTab:
         )
         row += 1
 
-        # Currency
+        # Valuta
         ttk.Label(info_frame, text="Currency:").grid(row=row, column=0, sticky="w", padx=5, pady=4)
         self.vars["currency"] = tk.StringVar()
         ttk.Combobox(info_frame, textvariable=self.vars["currency"],
                      values=CURRENCIES, state="readonly", width=30).grid(row=row, column=1, padx=5, pady=4)
         row += 1
 
-        # Maturity
+        # Looptijd
         ttk.Label(info_frame, text="Maturity:").grid(row=row, column=0, sticky="w", padx=5, pady=4)
         self.vars["maturity"] = tk.StringVar(value="5Y")
         ttk.Combobox(info_frame, textvariable=self.vars["maturity"],
                      values=MATURITIES, state="readonly", width=30).grid(row=row, column=1, padx=5, pady=4)
         row += 1
 
-        # Parameter widget state
+        # Status van de parametervelden
         self.pv_vars: dict[str, tk.StringVar] = {
             key: tk.StringVar(value="") for key in ["param1", "param2", "param3", "param4"]
         }
         self._payoff_widgets: list = []
         self._prev_fixed: set[str] = set()
 
-        # Parameter widgets on the right
+        # Parametervelden rechts
         self._update_params_widgets()
 
-        # Product buffer preview
+        # Voorbeeld van de productbuffer
         preview_frame = ttk.LabelFrame(self.frame, text="Buffered Products (max 4)")
         preview_frame.pack(fill="both", expand=False, padx=10, pady=10)
         self.products_listbox = tk.Listbox(preview_frame, height=5)
@@ -151,14 +151,14 @@ class MarketingMailTab:
         ttk.Button(preview_btns, text="Remove Selected", command=self._remove_selected_product).pack(side="left", padx=5)
         ttk.Button(preview_btns, text="Clear All", command=self._clear_all_products).pack(side="left", padx=5)
 
-        # ── Dates ────────────────────────────────────────────────────────────
+        # ── Datums ───────────────────────────────────────────────────────────
         _trade = date.today()
         _issue = _add_business_days(_trade, 5)
 
         dates_frame = ttk.LabelFrame(self.frame, text="Dates")
         dates_frame.pack(fill="x", padx=10, pady=(0, 4))
 
-        # Strike Date row
+        # Strike Date-rij
         ttk.Label(dates_frame, text="Strike Date:").grid(
             row=0, column=0, sticky="w", padx=8, pady=3)
         self._trade_override = tk.BooleanVar(value=False)
@@ -175,7 +175,7 @@ class MarketingMailTab:
         ttk.Label(dates_frame, text="(auto = today)",
                   foreground="#888").grid(row=0, column=3, sticky="w", padx=4)
 
-        # Issue Date row
+        # Issue Date-rij
         ttk.Label(dates_frame, text="Issue Date:").grid(
             row=1, column=0, sticky="w", padx=8, pady=3)
         self._issue_override = tk.BooleanVar(value=False)
@@ -191,7 +191,7 @@ class MarketingMailTab:
         ttk.Label(dates_frame, text="(auto = trade + 5 business days)",
                   foreground="#888").grid(row=1, column=3, sticky="w", padx=4)
 
-        # Action buttons
+        # Actieknoppen
         button_frame = ttk.Frame(self.frame)
         button_frame.pack(fill="x", padx=10, pady=10)
         ttk.Button(button_frame, text="+ Product", command=self.on_add_product).pack(side="left", padx=5)
@@ -201,13 +201,28 @@ class MarketingMailTab:
 
         self._refresh_products_preview()
 
-    # ──────────────────────────── underlying basket ───────────────────────────
+    # ──────────────────────────── mandje met onderliggende waarden ───────────
 
     def _add_underlying(self, ticker: str):
         ticker = ticker.strip().upper()
-        if ticker and ticker not in self.selected_underlyings:
+        if not ticker or ticker in self.selected_underlyings:
+            return
+        # Exacte match in bekende onderliggende waarden
+        if ticker in UNDERLYINGS:
             self.selected_underlyings.append(ticker)
             self._refresh_ul_display()
+            return
+        # Benadering: vind onderliggende waarden die beginnen met de verwerkte ticker
+        matches = [u for u in UNDERLYINGS if u.upper().startswith(ticker)]
+        if len(matches) == 1:
+            resolved = matches[0]
+            if resolved not in self.selected_underlyings:
+                self.selected_underlyings.append(resolved)
+                self._refresh_ul_display()
+            return
+        # Terugval: voeg toe zoals het is (gebruiker kan handmatig corrigeren)
+        self.selected_underlyings.append(ticker)
+        self._refresh_ul_display()
 
     def _remove_last_underlying(self):
         if self.selected_underlyings:
@@ -224,10 +239,10 @@ class MarketingMailTab:
                 joined = joined[:18] + "…"
             self._ul_display_var.set(f"{joined}  ({n})")
 
-    # ──────────────────────────── parameter widgets ───────────────────────────
+    # ──────────────────────────── parametervelden ────────────────────────────
 
     def _update_params_widgets(self):
-        """Destroy all payoff widgets and rebuild fresh for the current product type."""
+        """Gooi alle payoff-velden weg en bouw ze opnieuw op voor het huidige producttype."""
         for w in self._payoff_widgets:
             w.destroy()
         self._payoff_widgets.clear()
@@ -243,7 +258,7 @@ class MarketingMailTab:
             spec = cfg.get(key, {"label": key, "required": False})
             fixed = spec.get("fixed")
 
-            # If this key was fixed last time but is now editable, clear the stale fixed value
+            # Als deze sleutel de vorige keer vast stond maar nu bewerkbaar is, wis dan de oude vaste waarde
             if key in self._prev_fixed and fixed is None:
                 self.pv_vars[key].set("")
 
@@ -263,18 +278,18 @@ class MarketingMailTab:
         if use_asianing:
             self._add_asianing_row(row)
 
-        # Remember which keys were fixed this render
+        # Onthoud welke sleutels in deze opbouw vast stonden
         self._prev_fixed = {
             key for key in ["param1", "param2", "param3", "param4"]
             if cfg.get(key, {}).get("fixed") is not None
         }
 
-        # Autofill aflossingsbarrière = 100 for TRIGGER products
+        # Vul aflossingsbarrière automatisch in = 100 voor TRIGGER producten
         if product_type == "TRIGGER" and not self.pv_vars["param2"].get().strip():
             self.pv_vars["param2"].set("100")
 
     def _add_asianing_row(self, row: int):
-        """Asianing button/entries at the given grid row (same pattern as PC mail)."""
+        """Zet de Asianing-knop/velden op de opgegeven grid-rij (zelfde patroon als PC Mail)."""
         container = ttk.Frame(self.params_frame)
         container.grid(row=row, column=0, columnspan=2, sticky="w", padx=4, pady=2)
         self._payoff_widgets.append(container)
@@ -306,7 +321,7 @@ class MarketingMailTab:
             _show_button()
 
     def _get_params_values(self) -> dict:
-        """Return validated parameter values mapped to MarketingProduct field names."""
+        """Geef gevalideerde parameterwaarden terug, gemapt op de veldnamen van MarketingProduct."""
         product_type = self.vars["product_type"].get().strip()
         cfg = PARAMETER_CONFIG.get(product_type, PARAMETER_CONFIG.get("TRIGGER", {}))
         use_asianing = cfg.get("asianing", False)
@@ -360,9 +375,9 @@ class MarketingMailTab:
     def _on_product_type_changed(self, event=None):
         self._update_params_widgets()
 
-    # ──────────────────────────── SharePoint loader ───────────────────────────
+    # ──────────────────────────── SharePoint-inlader ─────────────────────────
 
-    # Maps SharePoint product name → Marketing Mail product type key
+    # Mapt SharePoint-productnaam → productsleutel voor Marketing Mail
     _SP_PRODUCT_MAP: dict[str, str] = {
         "Trigger Plus Note":          "TRIGGER",
         "Memory Coupon":              "MEMORY_COUPON",
@@ -370,8 +385,8 @@ class MarketingMailTab:
         "Index Garantie Note Capped": "INDEX_GARANTIE_CAPPED",
     }
 
-    # Maps SharePoint issuer short code → full MARKETING_ISSUERS string
-    # Keys match what sharepoint/parser.py ISSUER_CODE_MAP returns
+    # Zet de korte SharePoint-issuercode om naar de volledige MARKETING_ISSUERS-string
+    # Sleutels komen overeen met wat sharepoint/parser.py ISSUER_CODE_MAP teruggeeft
     _SP_ISSUER_MAP: dict[str, str] = {
         "VLK":                 MARKETING_ISSUERS[0],
         "BNP Paribas Issuance": MARKETING_ISSUERS[1],
@@ -380,7 +395,7 @@ class MarketingMailTab:
     }
 
     def _open_sharepoint_picker(self):
-        from gui.dialogs.sharepoint_picker import SharePointPickerDialog
+        from gui.sharepointgui.sharepoint_picker import SharePointPickerDialog
         dlg = SharePointPickerDialog(
             self.frame.winfo_toplevel(),
             str(SHAREPOINT_SUMMARY_PATH),
@@ -389,28 +404,28 @@ class MarketingMailTab:
             self._load_from_sharepoint(dlg.result)
 
     def _load_from_sharepoint(self, deal: dict):
-        """Auto-fill the current product form from a parsed SharePoint deal."""
-        # Product type
+        """Vul het huidige productformulier automatisch in vanuit een verwerkte SharePoint-deal."""
+        # Producttype
         product_type = self._SP_PRODUCT_MAP.get(deal.get("product", ""))
         if product_type and product_type in MARKETING_PRODUCT_TYPES:
             self.vars["product_type"].set(product_type)
             self._prev_fixed = set()
             self._update_params_widgets()
 
-        # Issuer
+        # Emittent
         issuer = self._SP_ISSUER_MAP.get(deal.get("issuer", ""))
         if issuer:
             self.vars["issuer"].set(issuer)
 
-        # Currency
+        # Valuta
         if deal.get("currency") and deal["currency"] in CURRENCIES:
             self.vars["currency"].set(deal["currency"])
 
-        # Maturity ("5Y", "7Y" — already in MATURITIES format)
+        # Looptijd ("5Y", "7Y" — al in MATURITIES-formaat)
         if deal.get("maturity") and deal["maturity"] in MATURITIES:
             self.vars["maturity"].set(deal["maturity"])
 
-        # Underlyings
+        # Onderliggende waarden
         self.selected_underlyings.clear()
         self._ul_search.clear()
         for ul in deal.get("underlyings", []):
@@ -419,13 +434,13 @@ class MarketingMailTab:
                 self.selected_underlyings.append(ul)
         self._refresh_ul_display()
 
-        # Payoff params — fill whatever SP parsed; user can adjust remainder
+        # Payoff-parameters — vul in wat SP heeft verwerkt; de gebruiker kan de rest aanpassen
         for key in ["param1", "param2", "param3", "param4"]:
             val = deal.get(key, "")
             if val:
                 self.pv_vars[key].set(val)
 
-        # Dates — override entries if SP has them
+        # Datums — zet handmatige velden als SP ze heeft
         if deal.get("trade_date"):
             self._trade_override.set(True)
             self._toggle_trade_date()
@@ -435,13 +450,13 @@ class MarketingMailTab:
             self._toggle_issue_date()
             self._issue_date_var.set(deal["issue_date"])
 
-    # ──────────────────────────── date helpers ────────────────────────────────
+    # ──────────────────────────── datumhelpers ───────────────────────────────
 
     def _toggle_trade_date(self):
         state = "normal" if self._trade_override.get() else "disabled"
         self._trade_date_entry.configure(state=state)
         if not self._trade_override.get():
-            # Reset to today and recompute issue date
+            # Zet terug naar vandaag en bereken de Issue Date opnieuw
             self._trade_date_var.set(date.today().strftime("%d/%m/%Y"))
 
     def _toggle_issue_date(self):
@@ -460,26 +475,26 @@ class MarketingMailTab:
             issue = _add_business_days(trade, 5)
             self._issue_date_var.set(issue.strftime("%d/%m/%Y"))
         except ValueError:
-            pass  # invalid date while typing — ignore
+            pass  # ongeldige datum tijdens typen — negeer
 
     def _get_trade_date_model_fmt(self) -> str:
-        """Return trade date in model format '%d %b %Y' (e.g. '17 Apr 2026')."""
+        """Geef de Trade Date terug in het modelformaat '%d %b %Y' (bijv. '17 Apr 2026')."""
         try:
             return datetime.strptime(self._trade_date_var.get(), "%d/%m/%Y").strftime("%d %b %Y")
         except ValueError:
             return date.today().strftime("%d %b %Y")
 
     def _get_issue_date_model_fmt(self) -> str:
-        """Return issue date in model format '%d %b %Y' (e.g. '17 Apr 2026')."""
+        """Geef de Issue Date terug in het modelformaat '%d %b %Y' (bijv. '17 Apr 2026')."""
         try:
             return datetime.strptime(self._issue_date_var.get(), "%d/%m/%Y").strftime("%d %b %Y")
         except ValueError:
             return _add_business_days(date.today(), 5).strftime("%d %b %Y")
 
-    # ──────────────────────────── product buffering ───────────────────────────
+    # ──────────────────────────── productbuffer ──────────────────────────────
 
     def _form_is_empty(self) -> bool:
-        # underlying + currency are the only intentional signals; params may be autofilled
+        # Onderliggende waarden + valuta zijn de enige bewuste signalen; parameters kunnen automatisch ingevuld zijn
         return (not self.selected_underlyings
                 and not self.vars["currency"].get().strip())
 
@@ -523,7 +538,7 @@ class MarketingMailTab:
         self._refresh_ul_display()
         self._clear_params_values()
         self._update_params_widgets()
-        # Reset dates to auto
+        # Zet datums terug op automatisch
         self._trade_override.set(False)
         self._toggle_trade_date()
         self._issue_override.set(False)
@@ -566,7 +581,7 @@ class MarketingMailTab:
         self.products.clear()
         self._refresh_products_preview()
 
-    # ──────────────────────────── example + send ──────────────────────────────
+    # ──────────────────────────── voorbeeld + versturen ──────────────────────
 
     def _send(self):
         try:
@@ -617,6 +632,28 @@ class MarketingMailTab:
             messagebox.showinfo("Success", f"✅ Marketing Mail created: {getattr(mail, 'Subject', '(no subject)')}")
 
         except ValueError:
-            pass  # already shown via messagebox
+            pass  # al via messagebox getoond
         except Exception as e:
-            messagebox.showerror("Error", str(e))
+            from statics.mail_debug import full_diagnostics
+            err_msg = str(e)
+            answer = messagebox.askyesno(
+                "Error",
+                f"{err_msg}\n\nWould you like to see the full debug report?"
+            )
+            if answer:
+                report = full_diagnostics()
+                self._show_debug_report(report, err_msg)
+
+    def _show_debug_report(self, report: str, error: str):
+        """Toon een debugrapport in een scrollbaar venster."""
+        import tkinter as tk
+        win = tk.Toplevel(self.frame.winfo_toplevel())
+        win.title(f"Debug Report - {error[:50]}")
+        win.geometry("750x600")
+        text = tk.Text(win, wrap="word", font=("Consolas", 9))
+        vsb = ttk.Scrollbar(win, orient="vertical", command=text.yview)
+        text.configure(yscrollcommand=vsb.set)
+        vsb.pack(side="right", fill="y")
+        text.pack(fill="both", expand=True)
+        text.insert("end", report)
+        text.config(state="disabled")

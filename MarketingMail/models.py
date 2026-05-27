@@ -9,30 +9,30 @@ from PCMail.builders.dates import add_business_days
 @dataclass
 class MarketingProduct:
     """
-    Input product definition for the Marketing Mail.
+    Invoerdefinitie van een product voor de Marketing Mail.
 
-    Required:   product_type, currency, underlying
-    Derived:    nominal, product_name, isin, vl_code, issue_date, startwaarde
+    Verplicht:  product_type, currency, underlying
+    Afgeleid:   nominal, product_name, isin, vl_code, issue_date, startwaarde
     Payoff:     coupon_protection, participation, barrier_cap, redemption_barrier
-    Asianing:   tail (months), obs (observations) — used for IGN/IGNC middeling text
+    Asianing:   tail (maanden), obs (observaties) — gebruikt voor IGN/IGNC-middelingstekst
     """
     product_type: str   # TRIGGER, MEMORY_COUPON, INDEX_GARANTIE, INDEX_GARANTIE_CAPPED, AUTOCALL
     currency: str       # EUR, USD
-    underlying: str     # e.g. "SX5E" or "SX5E / SPX"
+    underlying: str     # bijv. "SX5E" of "SX5E / SPX"
     issuer: str = "Van Lanschot Kempen N.V. (Fitch: A- / S&P: BBB+)"
     maturity: str = "5 jaar"
 
-    # Payoff fields — same naming as PCMailProduct
-    coupon_protection: Optional[str] = None  # Premie % (TRIGGER/MC) or Protection % (IGN)
-    participation: Optional[str] = None      # Aflossingsbarrierre % (TRIGGER) or Participatiegraad % (IGN)
-    barrier_cap: Optional[str] = None        # Coupon Barrier % (TRIGGER/MC) or Cap % (IGNC)
-    redemption_barrier: Optional[str] = None # Protection % (TRIGGER/MC); for IGN/IGNC → asianing text
+    # Payoff-velden — zelfde naamgeving als PCMailProduct
+    coupon_protection: Optional[str] = None  # Premie % (TRIGGER/MC) of Protection % (IGN)
+    participation: Optional[str] = None      # Aflossingsbarrierre % (TRIGGER) of Participatiegraad % (IGN)
+    barrier_cap: Optional[str] = None        # Coupon Barrier % (TRIGGER/MC) of Cap % (IGNC)
+    redemption_barrier: Optional[str] = None # Protection % (TRIGGER/MC); voor IGN/IGNC → asianing-tekst
 
-    # Asianing (middeling) — only for INDEX_GARANTIE and INDEX_GARANTIE_CAPPED
-    tail: Optional[str] = None  # Tail in months, e.g. "12" → displayed as "12m"
-    obs: Optional[str] = None   # Number of observations, e.g. "13" → displayed as "13obs"
+    # Asianing (middeling) — alleen voor INDEX_GARANTIE en INDEX_GARANTIE_CAPPED
+    tail: Optional[str] = None  # Tail in maanden, bijv. "12" → wordt getoond als "12m"
+    obs: Optional[str] = None   # Aantal observaties, bijv. "13" → wordt getoond als "13obs"
 
-    # Dates — default to auto; can be overridden from GUI
+    # Datums — standaard automatisch; kan vanuit de GUI overschreven worden
     start_date: str = field(
         default_factory=lambda: date.today().strftime("%d %b %Y")
     )
@@ -42,7 +42,7 @@ class MarketingProduct:
 
     @property
     def nominal(self) -> str:
-        """Derive nominal from currency + product_type."""
+        """Leid nominal af uit currency + product_type."""
         non_eur = self.currency in ("USD", "GBP")
         if self.product_type in ("TRIGGER", "MEMORY_COUPON", "AUTOCALL"):
             return "150,000" if non_eur else "100,000"
@@ -52,7 +52,7 @@ class MarketingProduct:
 
     @property
     def product_name(self) -> str:
-        """Derive product name from type, underlying, currency, with maturity."""
+        """Leid de productnaam af uit type, underlying, currency en looptijd."""
         from MarketingMail.product_title import PRODUCT_TYPE_NAMES, get_underlying_alias, get_maturity_years_range, _shorten_issuer
 
         issuer_short = _shorten_issuer(self.issuer)
@@ -73,11 +73,11 @@ class MarketingProduct:
 
     @property
     def startwaarde(self) -> str:
-        """Startwaarde text uses the start/trade date (today), not issue date."""
+        """De startwaarde-tekst gebruikt de start-/tradedatum (vandaag), niet de issue date."""
         return f"Startwaarde: TBD ({self.start_date})"
 
     def _build_asianing_text(self) -> str:
-        """Formats tail and obs into the middeling text for IGN/IGNC products."""
+        """Zet tail en obs om naar de middelingstekst voor IGN/IGNC-producten."""
         parts = []
         if self.tail:
             parts.append(f"{self.tail}m")
@@ -86,9 +86,9 @@ class MarketingProduct:
         return ", ".join(parts)
 
     def to_dict(self) -> dict:
-        """Convert to dict for the Excel injection pipeline."""
-        # For IGN/IGNC the 4th row (lbl_redemption_barrier / Middeling) shows asianing text.
-        # For TRIGGER/MC it shows the actual redemption barrier value.
+        """Zet om naar een dict voor de Excel-injectieflow."""
+        # Voor IGN/IGNC toont de 4e rij (lbl_redemption_barrier / Middeling) de asianing-tekst.
+        # Voor TRIGGER/MC toont die de echte redemption barrier-waarde.
         if self.product_type in ("INDEX_GARANTIE", "INDEX_GARANTIE_CAPPED"):
             fourth_value = self._build_asianing_text() or "n.v.t."
         else:

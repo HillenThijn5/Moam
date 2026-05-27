@@ -1,9 +1,9 @@
 
 """
-Product-specific text builders.
+Productspecifieke tekstbouwers.
 
-Each function maps product type + numeric inputs to a human-readable string
-for use in the Word template context.
+Elke functie zet producttype + numerieke invoer om naar een leesbare string
+voor gebruik in de context van het Word-sjabloon.
 """
 from statics.loader import load_parp_dates
 
@@ -17,23 +17,27 @@ def build_payoff(
     underlyings: list[str],
     tail: str = "",
     obs: str = "",
+    coupon_frequency: str = "Annual",
 ) -> str:
-    """Builds the payoff description sentence for the Word document."""
+    """Bouwt de payoff-beschrijvende zin voor het Word-document."""
     ow = "/".join(u for u in underlyings if u)
     p = product.strip()
+
+    freq = (coupon_frequency or "Annual").strip().lower()
+    freq_label = {"semi-annual": "semi-annual", "quarterly": "quarterly"}.get(freq, "annual")
 
     if p == "Trigger Plus Note":
         return (
             f"{participation} autocall barrier, {barrier_cap}% coupon barrier and "
             f"{redemption_barrier}% European style redemption barrier linked to "
-            f"{ow} with {coupon_protection}% annual memory coupon"
+            f"{ow} with {coupon_protection}% {freq_label} memory coupon"
         )
 
     if p == "Memory Coupon":
         return (
             f"{barrier_cap}% coupon barrier and "
             f"{redemption_barrier}% European style redemption barrier linked to "
-            f"{ow} with {coupon_protection}% annual memory coupon"
+            f"{ow} with {coupon_protection}% {freq_label} memory coupon"
         )
 
     if p == "Index Garantie Note":
@@ -65,27 +69,28 @@ def build_payoff(
         return base
 
     if p == "Fixed Rate Note":
-        return f"100% redemption and {coupon_protection}% fixed coupon per annum"
+        coupon_desc = {"semi-annual": "semi-annual", "quarterly": "quarterly"}.get(freq, "per annum")
+        return f"100% redemption and {coupon_protection}% fixed coupon {coupon_desc}"
 
     return ""
 
 
 def build_fee(struct_fee: float, dist_fee: float) -> str:
-    """Formats the fee line. Omits distribution fee when it is zero."""
+    """Formatteert de fee-regel. Laat de distributievergoeding weg als die nul is."""
     if dist_fee == 0:
         return f"Structuring fee: {struct_fee}% — No distribution fee."
     return f"Structuring fee: {struct_fee}% — Distribution fee: {dist_fee}%."
 
 
 def build_issuer_series(issuer: str, prospectus: str, series: str) -> str:
-    """Returns the issuer/series reference string for the Word context."""
+    """Geeft de referentiestring voor uitgevende instelling en series in de Word-context terug."""
     if issuer.strip().upper() == "VLK":
         return f"VLK – under {prospectus} series {series}"
     return f"Issuer {issuer}"
 
 
 def build_denomination(manual_denom: str, product: str, currency: str = "EUR") -> str:
-    """Returns denomination string. Uses manual override if provided, otherwise defaults by product and currency."""
+    """Geeft de coupurestring terug. Gebruikt een handmatige waarde als die is opgegeven, anders standaardwaarden op basis van product en valuta."""
     if manual_denom and manual_denom.strip():
         return manual_denom.strip()
 
@@ -102,12 +107,12 @@ def build_denomination(manual_denom: str, product: str, currency: str = "EUR") -
 
 
 def build_parp(product: str) -> str:
-    """Returns the PARP date for the product, read from the PARP sheet in static_sheet.xlsx."""
+    """Geeft de PARP-datum voor het product terug, gelezen uit het PARP-tabblad in static_sheet.xlsx."""
     return load_parp_dates().get(product.strip(), "")
 
 
 def build_eusipa(product: str) -> str:
-    """Returns the EUSIPA category and sub-category label for the product."""
+    """Geeft het EUSIPA-categorie- en subcategorielabel voor het product terug."""
     p = product.strip()
 
     if p in ("Trigger Plus Note", "Memory Coupon"):
@@ -138,7 +143,7 @@ def build_eusipa(product: str) -> str:
 
 
 def build_mifid(product: str) -> str:
-    """Returns MiFID product complexity classification."""
+    """Geeft de MiFID-classificatie voor productcomplexiteit terug."""
     if product.strip() == "Fixed Rate Note":
         return "Non-Complex"
     return "Complex"
@@ -146,8 +151,8 @@ def build_mifid(product: str) -> str:
 
 def build_kid(product: str, client: str = "") -> str:
     """
-    Returns the KID bookmark text.
-    VL Belgium and Fixed Rate Note get a scenario-analysis disclaimer instead of 'Yes'.
+    Geeft de KID-bladwijzertekst terug.
+    VL Belgium en Fixed Rate Note krijgen een scenarioanalyse-disclaimer in plaats van 'Yes'.
     """
     if (
         client.strip().lower() == "vl belgium"
@@ -161,7 +166,7 @@ def build_kid(product: str, client: str = "") -> str:
 
 
 def build_compliance(issuer: str) -> str:
-    """Returns the Legal/compliance action text based on issuer."""
+    """Geeft de tekst voor Legal/compliance-acties terug op basis van de uitgevende instelling."""
     if issuer.strip().upper() == "VLK":
         return (
             "SP desk will draft Final Terms. "
@@ -171,5 +176,5 @@ def build_compliance(issuer: str) -> str:
 
 
 def auto_prospectus_code(product: str) -> str:
-    """Returns 'DIP' for Fixed Rate Notes, 'SNIP' for all other products."""
+    """Geeft 'DIP' terug voor Fixed Rate Notes en 'SNIP' voor alle andere producten."""
     return "DIP" if (product or "").strip().upper() == "FIXED RATE NOTE" else "SNIP"

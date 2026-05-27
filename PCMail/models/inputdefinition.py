@@ -12,7 +12,7 @@ class Underlying:
 @dataclass
 class PCMailProduct:
     # -------------------------
-    # Core identity / commercial
+    # Kernidentiteit / commercieel
     # -------------------------
     product: str
     series: str
@@ -28,12 +28,12 @@ class PCMailProduct:
 
 
     # -------------------------
-    # Payoff inputs (Excel cells)
-    # Each field is reused across products with different semantic meaning:
-    #   coupon_protection  = coupon % (TPN/MC/FRN)  or  protection/min. redemption % (IGN/IGNC)
-    #   participation      = autocall barrier % (TPN)  or  participation % (IGN/IGNC)
-    #   barrier_cap        = coupon barrier % (TPN/MC)  or  cap/max. redemption % (IGNC)
-    #   redemption_barrier = European redemption barrier % (TPN/MC)
+    # Payoff-invoer (Excel-cellen)
+    # Elk veld wordt hergebruikt voor producten met een andere semantische betekenis:
+    #   coupon_protection  = coupon % (TPN/MC/FRN) of bescherming/min. aflossing % (IGN/IGNC)
+    #   participation      = autocallbarrière % (TPN) of participatie % (IGN/IGNC)
+    #   barrier_cap        = couponbarrière % (TPN/MC) of cap/max. aflossing % (IGNC)
+    #   redemption_barrier = Europese aflossingsbarrière % (TPN/MC)
     # -------------------------
     coupon_protection: float
     participation: float
@@ -43,7 +43,7 @@ class PCMailProduct:
 
 
     # -------------------------
-    # Regulatory / meta inputs (DIP / SNIP)
+    # Regelgevende / meta-invoer (DIP / SNIP)
     # -------------------------
     struct_fee: float
     dist_fee: float
@@ -55,7 +55,7 @@ class PCMailProduct:
     underlyings: List[Underlying]
 
     # -------------------------
-    # Derived fields — computed automatically, not required from the GUI
+    # Afgeleide velden — automatisch berekend, niet vereist vanuit de GUI
     # -------------------------
     parp: Optional[str] = ""
     jurisdiction: Optional[str] = ""
@@ -69,5 +69,6 @@ class PCMailProduct:
     distributor: Optional[str] = ""
     denomination: Optional[str] = ""
     prospectus: Optional[str] = ""
-    tail: Optional[str] = ""   # Asianing tail in months (e.g. "12" → "12m")
-    obs: Optional[str] = ""    # Asianing observations (e.g. "13" → "13obs")
+    tail: Optional[str] = ""   # Asianing-staart in maanden (bijv. "12" → "12m")
+    obs: Optional[str] = ""    # Asianing-observaties (bijv. "13" → "13obs")
+    coupon_frequency: Optional[str] = "Annual"  # Annual / Semi-Annual / Quarterly

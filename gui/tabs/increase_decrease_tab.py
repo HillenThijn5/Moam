@@ -6,14 +6,14 @@ import threading
 
 class IncreaseDecreaseTab:
     """
-    Increase / Decrease Mail tab.
+    Increase / Decrease Mail-tabblad.
 
-    Workflow:
-    1. Choose Increase or Decrease at the top.
-    2. Click 'Fetch Positions' — queries the DB for short (Increase) or long (Decrease) positions.
-    3. Select a row in the treeview.
-    4. Enter the nominal Size.
-    5. Click 'Send' to open a draft in Outlook.
+    Werkwijze:
+    1. Kies bovenaan Increase of Decrease.
+    2. Klik op 'Fetch Positions' — haalt short- (Increase) of long-posities (Decrease) op uit de database.
+    3. Selecteer een rij in de treeview.
+    4. Vul de nominale Size in.
+    5. Klik op 'Send' om een concept in Outlook te openen.
     """
 
     def __init__(self, parent):
@@ -23,13 +23,13 @@ class IncreaseDecreaseTab:
 
         self._build_ui()
 
-    # ──────────────────────────────────────────── UI construction ─────────────
+    # ──────────────────────────────────────────── UI constructie ─────────────
     def _build_ui(self):
-        # ── Direction + Fetch section (TOP) ───────────────────────────────────
+        # ── Richting + ophaalsectie (BOVENKANT) ───────────────────────────────
         fetch_frame = ttk.LabelFrame(self.frame, text="Direction & Database")
         fetch_frame.pack(fill="x", padx=10, pady=(10, 4))
 
-        # Direction radio buttons — first thing the user sets
+        # Richting-radioknoppen — dit zet de gebruiker als eerste
         ttk.Label(fetch_frame, text="Direction:").grid(
             row=0, column=0, sticky="w", padx=8, pady=6)
         self._direction_var = tk.StringVar(value="Increase")
@@ -42,7 +42,7 @@ class IncreaseDecreaseTab:
                         variable=self._direction_var, value="Decrease",
                         command=self._on_direction_change).pack(side="left")
 
-        # Fetch button + status on row below
+        # Ophalen-knop + status op de rij eronder
         ttk.Button(fetch_frame, text="Fetch Positions",
                    command=self._fetch_positions).grid(
             row=1, column=0, sticky="w", padx=8, pady=(0, 6))
@@ -50,7 +50,7 @@ class IncreaseDecreaseTab:
         ttk.Label(fetch_frame, textvariable=self._status_var,
                   foreground="#555").grid(row=1, column=1, sticky="w", padx=8)
 
-        # ── Positions treeview ────────────────────────────────────────────────
+        # ── Posities-treeview ────────────────────────────────────────────────
         tree_frame = ttk.LabelFrame(self.frame, text="Positions (select one)")
         tree_frame.pack(fill="both", expand=True, padx=10, pady=4)
 
@@ -69,11 +69,11 @@ class IncreaseDecreaseTab:
         self._tree.pack(fill="both", expand=True, padx=4, pady=4)
         self._tree.bind("<<TreeviewSelect>>", self._on_select)
 
-        # ── Deal details ──────────────────────────────────────────────────────
+        # ── Dealdetails ───────────────────────────────────────────────────────
         deal_frame = ttk.LabelFrame(self.frame, text="Deal Details")
         deal_frame.pack(fill="x", padx=10, pady=4)
 
-        # Pays / Receives (derived from direction, read-only)
+        # Pays / Receives (afgeleid van de richting, alleen-lezen)
         ttk.Label(deal_frame, text="Pays / Receives:").grid(
             row=0, column=0, sticky="w", padx=8, pady=4)
         self._pays_var = tk.StringVar(value="Pays")
@@ -81,7 +81,7 @@ class IncreaseDecreaseTab:
                   foreground="#003366", font=("Segoe UI", 10, "bold")).grid(
             row=0, column=1, sticky="w", padx=8, pady=4)
 
-        # Size
+        # Grootte
         ttk.Label(deal_frame, text="Size (nominal):").grid(
             row=1, column=0, sticky="w", padx=8, pady=4)
         size_row = ttk.Frame(deal_frame)
@@ -93,7 +93,7 @@ class IncreaseDecreaseTab:
         ttk.Label(size_row, text="  (e.g. 500.000 or 1.250.000)",
                   foreground="#888", font=("Segoe UI", 8)).pack(side="left")
 
-        # Selected product info
+        # Info over het gekozen product
         ttk.Label(deal_frame, text="Selected product:").grid(
             row=2, column=0, sticky="w", padx=8, pady=4)
         self._selected_var = tk.StringVar(value="— none —")
@@ -101,12 +101,12 @@ class IncreaseDecreaseTab:
                   state="readonly", width=55).grid(
             row=2, column=1, sticky="w", padx=8, pady=4)
 
-        # ── Buttons ───────────────────────────────────────────────────────────
+        # ── Knoppen ───────────────────────────────────────────────────────────
         btn_frame = ttk.Frame(self.frame)
         btn_frame.pack(fill="x", padx=10, pady=10)
         ttk.Button(btn_frame, text="Send Mail", command=self._send).pack(side="left", padx=5)
 
-    # ──────────────────────────────────────────── helpers ─────────────────────
+    # ──────────────────────────────────────────── hulpfuncties ─────────────────
     def _format_size(self, _=None):
         raw = self._size_var.get().replace(".", "").replace(",", "").strip()
         if not raw:
@@ -117,9 +117,9 @@ class IncreaseDecreaseTab:
             pass
 
     def _on_direction_change(self):
-        """Direction changed — update Pays/Receives and reset the table."""
+        """Richting veranderd — werk Pays/Receives bij en reset de tabel."""
         self._pays_var.set("Pays" if self._direction_var.get() == "Increase" else "Receives")
-        # Clear positions so the user knows they need to re-fetch for the new direction
+        # Wis posities zodat duidelijk is dat ze voor de nieuwe richting opnieuw opgehaald moeten worden
         self._tree.delete(*self._tree.get_children())
         self._positions = []
         self._selected = None
@@ -141,16 +141,16 @@ class IncreaseDecreaseTab:
             "TransferPrice": float(tp) if tp not in ("", "None", None) else None,
         }
         self._selected_var.set(f"{name}  |  {isin}")
-        # Autofill size with the absolute position value (display value already formatted Dutch-style)
+        # Vul Size automatisch in met de absolute positiewaarde (weergave is al in Nederlandse stijl geformatteerd)
         try:
             abs_pos = abs(int(str(position).replace(".", "").replace(",", "")))
             self._size_var.set(f"{abs_pos:,}".replace(",", "."))
         except (ValueError, TypeError):
             pass
 
-    # ──────────────────────────────────────────── DB fetch ────────────────────
+    # ──────────────────────────────────────────── DB-ophalen ──────────────────
     def _fetch_positions(self):
-        direction = self._direction_var.get().lower()   # "increase" or "decrease"
+        direction = self._direction_var.get().lower()   # "increase" of "decrease"
         label = "short" if direction == "increase" else "long"
         self._status_var.set(f"Fetching {label} positions…")
         self._tree.delete(*self._tree.get_children())
@@ -170,7 +170,7 @@ class IncreaseDecreaseTab:
 
     def _populate_tree(self, rows: list[dict]):
         self._positions = rows
-        # Sort by absolute position: smallest first for Increase, largest first for Decrease
+        # Sorteer op absolute positie: kleinste eerst bij Increase, grootste eerst bij Decrease
         reverse = (self._direction_var.get() == "Decrease")
         rows_sorted = sorted(
             rows,
@@ -197,7 +197,7 @@ class IncreaseDecreaseTab:
         self._status_var.set("Error — see dialog")
         messagebox.showerror("DB Error", f"Could not fetch positions:\n\n{msg}")
 
-    # ──────────────────────────────────────────── send ────────────────────────
+    # ──────────────────────────────────────────── versturen ───────────────────
     def _send(self):
         if not self._selected:
             messagebox.showerror("Validation", "Please select a position from the table.")
@@ -223,6 +223,27 @@ class IncreaseDecreaseTab:
             )
             messagebox.showinfo("Success", "✅ Mail draft opened in Outlook.")
         except Exception as exc:
-            messagebox.showerror("Error", str(exc))
-            raise
+            from statics.mail_debug import full_diagnostics
+            err_msg = str(exc)
+            answer = messagebox.askyesno(
+                "Error",
+                f"{err_msg}\n\nWould you like to see the full debug report?"
+            )
+            if answer:
+                report = full_diagnostics()
+                self._show_debug_report(report, err_msg)
+
+    def _show_debug_report(self, report: str, error: str):
+        """Toon debug report in een scrollbaar venster."""
+        import tkinter as tk
+        win = tk.Toplevel(self.frame.winfo_toplevel())
+        win.title(f"Debug Report - {error[:50]}")
+        win.geometry("750x600")
+        text = tk.Text(win, wrap="word", font=("Consolas", 9))
+        vsb = ttk.Scrollbar(win, orient="vertical", command=text.yview)
+        text.configure(yscrollcommand=vsb.set)
+        vsb.pack(side="right", fill="y")
+        text.pack(fill="both", expand=True)
+        text.insert("end", report)
+        text.config(state="disabled")
 

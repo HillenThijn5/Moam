@@ -1,16 +1,16 @@
 """
-Email body builders.
+Bouwers voor de e-mailbody.
 
-Builds the SAS action item list, the Word todo section,
-and the full HTML body of the PC notification email.
+Bouwt de lijst met SAS-acties, de Word-sectie met taken,
+en de volledige HTML-body van de PC-notificatiemail.
 """
 from PCMail.builders.product_fields import build_compliance, build_denomination
 
 
 def build_sas_action_items(product) -> list[str]:
     """
-    Returns the ordered list of SAS action items for the product.
-    Used in both the Word todo section and the email body.
+    Geeft de geordende lijst met SAS-actiepunten voor het product terug.
+    Wordt gebruikt in zowel de Word-sectie met taken als de e-mailbody.
     """
     items = []
 
@@ -32,7 +32,7 @@ def build_sas_action_items(product) -> list[str]:
 
 
 def build_sas_word_text(product) -> str:
-    """Formats SAS items as a bullet list for the Word template 'todo' bookmark."""
+    """Formatteert SAS-items als opsomming voor de Word-bladwijzer 'todo'."""
     items = build_sas_action_items(product)
 
     if not items:
@@ -42,7 +42,7 @@ def build_sas_word_text(product) -> str:
 
 
 def build_todo_html(product) -> str:
-    """Renders the <To do> HTML block for the email body."""
+    """Rendert het HTML-blok <To do> voor de e-mailbody."""
     sas_items = build_sas_action_items(product)
     sas_list_html = "".join(f"<li>{item}</li>" for item in sas_items)
 
@@ -67,7 +67,7 @@ def build_todo_html(product) -> str:
 
 
 def build_email_body_html(todo_html: str, sender: str = "") -> str:
-    """Renders the full HTML body of the PC notification email."""
+    """Rendert de volledige HTML-body van de PC-notificatiemail."""
     return f"""
     <html><body style='font-family:Segoe UI; font-size:11pt'>
     <p>Hi,</p>

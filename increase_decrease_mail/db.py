@@ -1,10 +1,10 @@
 # increase_decrease_mail/db.py
 """
-Queries the StructuredProducts2010 database for current MTN positions
-(Format=13, Book=2) with their latest TransferPrice.
+Vraagt de StructuredProducts2010-database uit voor huidige MTN-posities
+(Format=13, Book=2) met hun laatste TransferPrice.
 
-Pass direction="increase" to get short positions (Position < 0).
-Pass direction="decrease" to get long positions  (Position > 0).
+Geef direction="increase" mee voor shortposities (Position < 0).
+Geef direction="decrease" mee voor longposities (Position > 0).
 """
 import pyodbc
 from statics.data import ID_MAIL_DB_CONN_STR
@@ -45,12 +45,12 @@ WHERE Pos.Position {sign} 0;
 
 def fetch_positions(direction: str = "increase") -> list[dict]:
     """
-    Returns a list of dicts with keys: Name, ISIN, Position, TransferPrice.
+    Geeft een lijst met dicts terug met de sleutels: Name, ISIN, Position, TransferPrice.
 
-    direction="increase"  → short positions (Position < 0)
-    direction="decrease"  → long positions  (Position > 0)
+    direction="increase"  → shortposities (Position < 0)
+    direction="decrease"  → longposities (Position > 0)
 
-    Raises pyodbc.Error on connection / query failure.
+    Gooit pyodbc.Error bij een fout in de connectie of query.
     """
     if direction not in ("increase", "decrease"):
         raise ValueError(f"direction must be 'increase' or 'decrease', got '{direction}'")
